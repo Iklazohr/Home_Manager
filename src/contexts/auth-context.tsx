@@ -47,20 +47,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function fetchProfile(firebaseUser: User) {
-    try {
-      const docRef = doc(db, 'users', firebaseUser.uid)
-      const docSnap = await getDoc(docRef)
-      if (docSnap.exists()) {
-        setUserProfile({ uid: firebaseUser.uid, ...docSnap.data() } as UserProfile)
-      } else {
-        // Profilo mancante in Firestore — lo creo automaticamente
-        const profile = await ensureProfile(firebaseUser)
-        setUserProfile(profile)
+    // Retry: Firestore potrebbe non essere ancora connesso al primo tentativo
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const docRef = doc(db, 'users', firebaseUser.uid)
+        const docSnap = await getDoc(docRef)
+        if (docSnap.exists()) {
+          setUserProfile({ uid: firebaseUser.uid, ...docSnap.data() } as UserProfile)
+        } else {
+          const profile = await ensureProfile(firebaseUser)
+          setUserProfile(profile)
+        }
+        return
+      } catch (err) {
+        console.warn(`Tentativo ${attempt + 1}/3 caricamento profilo fallito:`, err)
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)))
+        } else {
+          console.error('Errore caricamento profilo dopo 3 tentativi:', err)
+        }
       }
-    } catch (err) {
-      console.error('Errore caricamento profilo:', err)
-      // NON resettare userProfile a null su errori transitori —
-      // mantenere il profilo esistente se presente
     }
   }
 
