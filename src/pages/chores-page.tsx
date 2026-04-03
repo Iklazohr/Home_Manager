@@ -93,16 +93,16 @@ export function ChoresPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-primary">Attivita</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowTypeDialog(true)}>
+          <Button variant="outline" size="sm" onClick={() => setShowTypeDialog(true)}>
             <PlusCircleIcon className="h-4 w-4" />
-            Nuovo Tipo
+            <span className="hidden sm:inline">Nuovo </span>Tipo
           </Button>
-          <Button onClick={() => setShowChoreDialog(true)}>
+          <Button size="sm" onClick={() => setShowChoreDialog(true)}>
             <PlusCircleIcon className="h-4 w-4" />
-            Assegna Attivita
+            Assegna
           </Button>
         </div>
       </div>
