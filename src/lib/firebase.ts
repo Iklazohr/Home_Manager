@@ -1,5 +1,11 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import {
+  initializeAuth,
+  browserLocalPersistence,
+  indexedDBLocalPersistence,
+  getAuth,
+  type Auth,
+} from 'firebase/auth'
 import {
   initializeFirestore,
   getFirestore,
@@ -18,11 +24,19 @@ const firebaseConfig = {
 }
 
 export const app = initializeApp(firebaseConfig)
-export const auth = getAuth(app)
 
-// Abilita persistenza offline: i dati vengono salvati in IndexedDB,
-// le scritture funzionano anche offline e si sincronizzano dopo,
-// le letture usano la cache se il server non e raggiungibile
+// Auth con persistenza esplicita: IndexedDB (primario) + localStorage (fallback)
+let auth: Auth
+try {
+  auth = initializeAuth(app, {
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+  })
+} catch {
+  auth = getAuth(app)
+}
+export { auth }
+
+// Firestore con cache locale persistente
 let db: Firestore
 try {
   db = initializeFirestore(app, {
@@ -33,5 +47,4 @@ try {
 } catch {
   db = getFirestore(app)
 }
-
 export { db }
