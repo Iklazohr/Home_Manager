@@ -48,7 +48,7 @@ export function ChoresPage() {
   const [choreDueDate, setChoreDueDate] = useState('')
 
   const getMemberName = (uid: string) =>
-    members.find((m) => m.uid === uid)?.displayName ?? 'N/A'
+    uid === 'everyone' ? 'Tutti' : (members.find((m) => m.uid === uid)?.displayName ?? 'N/A')
 
   async function handleAddType() {
     if (!typeName || !user) return
@@ -314,6 +314,7 @@ export function ChoresPage() {
                 onChange={(e) => setChoreAssignedTo(e.target.value)}
               >
                 <option value="">Seleziona...</option>
+                <option value="everyone">Tutti i membri</option>
                 {members.map((m) => (
                   <option key={m.uid} value={m.uid}>{m.displayName}</option>
                 ))}

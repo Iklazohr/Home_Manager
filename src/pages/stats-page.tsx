@@ -31,8 +31,9 @@ export function StatsPage() {
       const userOnTime = userCompletions.filter((c) => c.wasOnTime).length
       const userTotal = userCompletions.length
       const userRate = userTotal > 0 ? Math.round((userOnTime / userTotal) * 100) : 0
-      const pendingChores = chores.filter((c) => c.assignedTo === m.uid && c.status !== 'completato').length
-      const overdueChores = chores.filter((c) => c.assignedTo === m.uid && c.status === 'in_ritardo').length
+      const isAssignedTo = (c: { assignedTo: string }) => c.assignedTo === m.uid || c.assignedTo === 'everyone'
+      const pendingChores = chores.filter((c) => isAssignedTo(c) && c.status !== 'completato').length
+      const overdueChores = chores.filter((c) => isAssignedTo(c) && c.status === 'in_ritardo').length
 
       return {
         uid: m.uid,

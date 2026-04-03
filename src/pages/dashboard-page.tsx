@@ -46,6 +46,7 @@ export function DashboardPage() {
   const pendingCount = chores.filter((c) => c.status === 'in_attesa').length
 
   const getMemberName = (uid: string) => {
+    if (uid === 'everyone') return 'Tutti'
     const m = members.find((m) => m.uid === uid)
     return m?.displayName ?? 'Non assegnato'
   }

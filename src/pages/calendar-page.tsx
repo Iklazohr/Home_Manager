@@ -66,6 +66,7 @@ export function CalendarPage() {
   }, [choresByDay, selectedDay])
 
   const getMemberName = (uid: string) => {
+    if (uid === 'everyone') return 'Tutti'
     return members.find((m) => m.uid === uid)?.displayName ?? 'N/A'
   }
 
