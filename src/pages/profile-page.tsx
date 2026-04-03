@@ -13,7 +13,7 @@ import { db } from '@/lib/firebase'
 
 export function ProfilePage() {
   const { user, userProfile, logout, updateProfileData } = useAuth()
-  const { isEnabled, loading: notifLoading, error: notifError, enableNotifications, disableNotifications } = useNotifications()
+  const { isEnabled, isSupported: notifSupported, loading: notifLoading, error: notifError, enableNotifications, disableNotifications } = useNotifications()
   const [displayName, setDisplayName] = useState(userProfile?.displayName ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -112,7 +112,7 @@ export function ProfilePage() {
             <Button
               variant="outline"
               onClick={handleToggleNotifications}
-              disabled={notifLoading}
+              disabled={notifLoading || !notifSupported}
               className={isEnabled ? 'text-primary' : 'text-muted-foreground'}
             >
               {notifLoading ? (
@@ -130,6 +130,9 @@ export function ProfilePage() {
               )}
             </Button>
           </div>
+          {!notifSupported && (
+            <p className="text-xs text-muted-foreground">Il tuo browser non supporta le notifiche.</p>
+          )}
           {notifError && <p className="text-sm text-destructive">{notifError}</p>}
         </CardContent>
       </Card>
