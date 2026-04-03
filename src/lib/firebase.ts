@@ -1,11 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import {
-  initializeAuth,
-  browserLocalPersistence,
-  indexedDBLocalPersistence,
-  getAuth,
-  type Auth,
-} from 'firebase/auth'
+import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -18,18 +12,5 @@ const firebaseConfig = {
 }
 
 export const app = initializeApp(firebaseConfig)
+export const auth = getAuth(app)
 export const db = getFirestore(app)
-
-// Persistenza esplicita: IndexedDB (primario) + localStorage (fallback)
-// initializeAuth garantisce che la persistenza sia impostata PRIMA di qualsiasi operazione auth
-let auth: Auth
-try {
-  auth = initializeAuth(app, {
-    persistence: [indexedDBLocalPersistence, browserLocalPersistence],
-  })
-} catch {
-  // In caso di HMR (dev) o doppia inizializzazione, usa l'istanza esistente
-  auth = getAuth(app)
-}
-
-export { auth }

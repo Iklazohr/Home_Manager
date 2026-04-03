@@ -65,7 +65,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    // Safety timeout: se onAuthStateChanged non scatta entro 5s, sblocca l'app
+    const timeout = setTimeout(() => {
+      setLoading(false)
+    }, 5000)
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      clearTimeout(timeout)
       try {
         setUser(firebaseUser)
         if (firebaseUser) {
@@ -79,7 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false)
       }
     })
-    return unsubscribe
+    return () => {
+      clearTimeout(timeout)
+      unsubscribe()
+    }
   }, [])
 
   async function login(email: string, password: string) {
