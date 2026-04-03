@@ -11,22 +11,27 @@ import { useAuth } from '@/contexts/auth-context'
 import { db } from '@/lib/firebase'
 
 export function ProfilePage() {
-  const { user, userProfile, logout, refreshProfile } = useAuth()
+  const { user, userProfile, logout, updateProfileData } = useAuth()
   const [displayName, setDisplayName] = useState(userProfile?.displayName ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
 
   async function handleSave() {
     if (!user || !displayName.trim()) return
     setSaving(true)
+    setError('')
     try {
       await updateProfile(user, { displayName: displayName.trim() })
       await updateDoc(doc(db, 'users', user.uid), {
         displayName: displayName.trim(),
       })
-      await refreshProfile()
+      updateProfileData({ displayName: displayName.trim() })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      console.error('Errore salvataggio profilo:', err)
+      setError('Errore nel salvataggio. Riprova.')
     } finally {
       setSaving(false)
     }
@@ -34,10 +39,15 @@ export function ProfilePage() {
 
   async function toggleNotifications() {
     if (!user || !userProfile) return
-    await updateDoc(doc(db, 'users', user.uid), {
-      notificationsEnabled: !userProfile.notificationsEnabled,
-    })
-    await refreshProfile()
+    const newValue = !userProfile.notificationsEnabled
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        notificationsEnabled: newValue,
+      })
+      updateProfileData({ notificationsEnabled: newValue })
+    } catch (err) {
+      console.error('Errore aggiornamento notifiche:', err)
+    }
   }
 
   return (
@@ -76,6 +86,7 @@ export function ProfilePage() {
                 {saved ? 'Salvato!' : 'Salva'}
               </Button>
             </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
 
           <div className="space-y-2">

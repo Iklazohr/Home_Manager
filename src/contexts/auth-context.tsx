@@ -20,6 +20,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   refreshProfile: () => Promise<void>
   addHouseholdId: (householdId: string) => void
+  updateProfileData: (updates: Partial<Omit<UserProfile, 'uid'>>) => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -29,19 +30,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  async function fetchProfile(uid: string) {
+  // Crea il profilo Firestore se mancante (es. registrazione parzialmente fallita)
+  async function ensureProfile(firebaseUser: User): Promise<UserProfile> {
+    const docRef = doc(db, 'users', firebaseUser.uid)
+    const profile: Omit<UserProfile, 'uid'> = {
+      email: firebaseUser.email ?? '',
+      displayName: firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'Utente',
+      avatarUrl: null,
+      householdIds: [],
+      notificationsEnabled: true,
+      fcmToken: null,
+      createdAt: serverTimestamp() as UserProfile['createdAt'],
+    }
+    await setDoc(docRef, profile)
+    return { uid: firebaseUser.uid, ...profile }
+  }
+
+  async function fetchProfile(firebaseUser: User) {
     try {
-      const docRef = doc(db, 'users', uid)
+      const docRef = doc(db, 'users', firebaseUser.uid)
       const docSnap = await getDoc(docRef)
       if (docSnap.exists()) {
-        setUserProfile({ uid, ...docSnap.data() } as UserProfile)
+        setUserProfile({ uid: firebaseUser.uid, ...docSnap.data() } as UserProfile)
       } else {
-        console.warn('Profilo utente non trovato per uid:', uid)
-        setUserProfile(null)
+        // Profilo mancante in Firestore — lo creo automaticamente
+        const profile = await ensureProfile(firebaseUser)
+        setUserProfile(profile)
       }
     } catch (err) {
       console.error('Errore caricamento profilo:', err)
-      setUserProfile(null)
+      // NON resettare userProfile a null su errori transitori —
+      // mantenere il profilo esistente se presente
     }
   }
 
@@ -50,13 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setUser(firebaseUser)
         if (firebaseUser) {
-          await fetchProfile(firebaseUser.uid)
+          await fetchProfile(firebaseUser)
         } else {
           setUserProfile(null)
         }
       } catch (err) {
         console.error('Errore auth state change:', err)
-        setUserProfile(null)
       } finally {
         setLoading(false)
       }
@@ -66,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     const cred = await signInWithEmailAndPassword(auth, email, password)
-    await fetchProfile(cred.user.uid)
+    await fetchProfile(cred.user)
   }
 
   async function register(email: string, password: string, displayName: string) {
@@ -95,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function refreshProfile() {
     if (user) {
-      await fetchProfile(user.uid)
+      await fetchProfile(user)
     }
   }
 
@@ -105,8 +123,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
   }
 
+  function updateProfileData(updates: Partial<Omit<UserProfile, 'uid'>>) {
+    setUserProfile((prev) => (prev ? { ...prev, ...updates } : null))
+  }
+
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, login, register, logout, refreshProfile, addHouseholdId }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        userProfile,
+        loading,
+        login,
+        register,
+        logout,
+        refreshProfile,
+        addHouseholdId,
+        updateProfileData,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
