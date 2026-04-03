@@ -69,4 +69,16 @@
     @apply bg-background text-foreground;
     font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
   }
+
+  /* Date picker e select nativi in tema dark */
+  .color-scheme-dark {
+    color-scheme: dark;
+  }
+  input[type="date"] {
+    color-scheme: dark;
+  }
+  select option {
+    background-color: oklch(0.205 0 0);
+    color: oklch(0.985 0 0);
+  }
 }

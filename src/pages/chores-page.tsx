@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
-  PlusCircleIcon,
+  PlusIcon,
   Trash2Icon,
   CheckCircleIcon,
+  ArrowUpDownIcon,
 } from 'lucide-react'
 import type { Timestamp } from 'firebase/firestore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,8 +24,13 @@ import { useChoreTypes, useChores } from '@/hooks/use-chores'
 import { useHousehold } from '@/contexts/household-context'
 import { useAuth } from '@/contexts/auth-context'
 import { CHORE_ICONS, getChoreIcon } from '@/lib/chore-icons'
-import { FREQUENCY_LABELS, type ChoreFrequency } from '@/types'
+import { FREQUENCY_LABELS, FREQUENCY_DAYS, type ChoreFrequency } from '@/types'
 import { cn } from '@/lib/utils'
+
+type SortMode = 'scadenza' | 'nome' | 'frequenza'
+
+const selectClasses =
+  'flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground'
 
 export function ChoresPage() {
   const { user } = useAuth()
@@ -33,7 +39,8 @@ export function ChoresPage() {
   const { chores, addChore, completeChore, deleteChore } = useChores()
 
   const [showTypeDialog, setShowTypeDialog] = useState(false)
-  const [showChoreDialog, setShowChoreDialog] = useState(false)
+  const [showAssignDialog, setShowAssignDialog] = useState(false)
+  const [sortMode, setSortMode] = useState<SortMode>('scadenza')
 
   // New chore type form
   const [typeName, setTypeName] = useState('')
@@ -41,7 +48,7 @@ export function ChoresPage() {
   const [typeDesc, setTypeDesc] = useState('')
   const [typeFreq, setTypeFreq] = useState<ChoreFrequency>('settimanale')
 
-  // New chore form
+  // Assign chore form — precompilato quando si clicca su un tipo
   const [choreTypeId, setChoreTypeId] = useState('')
   const [choreAssignedTo, setChoreAssignedTo] = useState('')
   const [choreFrequency, setChoreFrequency] = useState<ChoreFrequency>('settimanale')
@@ -49,6 +56,32 @@ export function ChoresPage() {
 
   const getMemberName = (uid: string) =>
     uid === 'everyone' ? 'Tutti' : (members.find((m) => m.uid === uid)?.displayName ?? 'N/A')
+
+  // Ordinamento attivita
+  const sortedChores = useMemo(() => {
+    const sorted = [...chores]
+    switch (sortMode) {
+      case 'nome':
+        sorted.sort((a, b) => a.choreTypeName.localeCompare(b.choreTypeName))
+        break
+      case 'frequenza':
+        sorted.sort((a, b) => FREQUENCY_DAYS[a.frequency] - FREQUENCY_DAYS[b.frequency])
+        break
+      case 'scadenza':
+      default:
+        // gia ordinato per scadenza dal hook
+        break
+    }
+    return sorted
+  }, [chores, sortMode])
+
+  function openAssignFromType(ct: { id: string; defaultFrequency: ChoreFrequency }) {
+    setChoreTypeId(ct.id)
+    setChoreFrequency(ct.defaultFrequency)
+    setChoreAssignedTo('')
+    setChoreDueDate('')
+    setShowAssignDialog(true)
+  }
 
   async function handleAddType() {
     if (!typeName || !user) return
@@ -80,7 +113,7 @@ export function ChoresPage() {
     setChoreTypeId('')
     setChoreAssignedTo('')
     setChoreDueDate('')
-    setShowChoreDialog(false)
+    setShowAssignDialog(false)
   }
 
   if (!currentHousehold) {
@@ -93,29 +126,26 @@ export function ChoresPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-primary">Attivita</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowTypeDialog(true)}>
-            <PlusCircleIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Nuovo </span>Tipo
-          </Button>
-          <Button size="sm" onClick={() => setShowChoreDialog(true)}>
-            <PlusCircleIcon className="h-4 w-4" />
-            Assegna
-          </Button>
-        </div>
-      </div>
+      <h1 className="text-2xl font-bold text-primary">Attivita</h1>
 
-      {/* Chore types */}
+      {/* Tipi di attivita — clicca per assegnare */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>Tipi di Attivita</CardTitle>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setShowTypeDialog(true)}
+            title="Nuovo tipo"
+          >
+            <PlusIcon className="h-4 w-4" />
+          </Button>
         </CardHeader>
         <CardContent>
           {choreTypes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Nessun tipo di attivita creato. Inizia creandone uno!
+              Nessun tipo di attivita creato. Premi + per crearne uno!
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -124,7 +154,9 @@ export function ChoresPage() {
                 return (
                   <div
                     key={ct.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50"
+                    className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                    onClick={() => openAssignFromType(ct)}
+                    title="Clicca per assegnare"
                   >
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <Icon className="h-4 w-4" />
@@ -139,7 +171,10 @@ export function ChoresPage() {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteChoreType(ct.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteChoreType(ct.id)
+                      }}
                     >
                       <Trash2Icon className="h-3.5 w-3.5" />
                     </Button>
@@ -151,30 +186,46 @@ export function ChoresPage() {
         </CardContent>
       </Card>
 
-      {/* Active chores */}
+      {/* Attivita programmate */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>Attivita Programmate</CardTitle>
+          {chores.length > 1 && (
+            <div className="flex items-center gap-1">
+              <ArrowUpDownIcon className="h-3.5 w-3.5 text-muted-foreground" />
+              <select
+                className="text-xs bg-transparent text-muted-foreground border-none outline-none cursor-pointer"
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as SortMode)}
+              >
+                <option value="scadenza">Scadenza</option>
+                <option value="nome">Nome</option>
+                <option value="frequenza">Frequenza</option>
+              </select>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {chores.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nessuna attivita programmata.</p>
+            <p className="text-sm text-muted-foreground">
+              Nessuna attivita programmata. Clicca su un tipo di attivita per assegnarla.
+            </p>
           ) : (
             <div className="space-y-3">
-              {chores.map((chore) => {
+              {sortedChores.map((chore) => {
                 const Icon = getChoreIcon(chore.choreTypeIcon)
                 const due = (chore.nextDueDate as Timestamp).toDate()
                 return (
                   <div
                     key={chore.id}
                     className={cn(
-                      'flex items-center gap-4 p-3 rounded-lg border',
+                      'flex items-center gap-3 sm:gap-4 p-3 rounded-lg border',
                       chore.status === 'in_ritardo'
                         ? 'border-destructive/30 bg-destructive/5'
                         : 'border-border bg-card/50'
                     )}
                   >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -182,15 +233,16 @@ export function ChoresPage() {
                       <p className="text-xs text-muted-foreground">
                         {getMemberName(chore.assignedTo)} &middot;{' '}
                         {FREQUENCY_LABELS[chore.frequency]} &middot;{' '}
-                        Scadenza: {format(due, 'd MMM', { locale: it })}
+                        {format(due, 'd MMM', { locale: it })}
                       </p>
                     </div>
                     <Badge
                       variant={chore.status === 'in_ritardo' ? 'destructive' : 'secondary'}
+                      className="hidden sm:inline-flex"
                     >
                       {chore.status === 'in_ritardo' ? 'In ritardo' : 'In attesa'}
                     </Badge>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -218,7 +270,7 @@ export function ChoresPage() {
         </CardContent>
       </Card>
 
-      {/* Dialog: New Chore Type */}
+      {/* Dialog: Nuovo Tipo di Attivita */}
       <Dialog open={showTypeDialog} onOpenChange={setShowTypeDialog}>
         <DialogContent>
           <DialogHeader>
@@ -265,7 +317,7 @@ export function ChoresPage() {
             <div className="space-y-2">
               <Label>Frequenza predefinita</Label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground"
+                className={selectClasses}
                 value={typeFreq}
                 onChange={(e) => setTypeFreq(e.target.value as ChoreFrequency)}
               >
@@ -282,8 +334,8 @@ export function ChoresPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: Assign Chore */}
-      <Dialog open={showChoreDialog} onOpenChange={setShowChoreDialog}>
+      {/* Dialog: Assegna Attivita */}
+      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Assegna Attivita</DialogTitle>
@@ -292,7 +344,7 @@ export function ChoresPage() {
             <div className="space-y-2">
               <Label>Tipo di attivita</Label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground"
+                className={selectClasses}
                 value={choreTypeId}
                 onChange={(e) => {
                   setChoreTypeId(e.target.value)
@@ -309,7 +361,7 @@ export function ChoresPage() {
             <div className="space-y-2">
               <Label>Assegna a</Label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground"
+                className={selectClasses}
                 value={choreAssignedTo}
                 onChange={(e) => setChoreAssignedTo(e.target.value)}
               >
@@ -323,7 +375,7 @@ export function ChoresPage() {
             <div className="space-y-2">
               <Label>Frequenza</Label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground"
+                className={selectClasses}
                 value={choreFrequency}
                 onChange={(e) => setChoreFrequency(e.target.value as ChoreFrequency)}
               >
@@ -336,13 +388,14 @@ export function ChoresPage() {
               <Label>Prima scadenza</Label>
               <Input
                 type="date"
+                className="color-scheme-dark"
                 value={choreDueDate}
                 onChange={(e) => setChoreDueDate(e.target.value)}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowChoreDialog(false)}>Annulla</Button>
+            <Button variant="outline" onClick={() => setShowAssignDialog(false)}>Annulla</Button>
             <Button onClick={handleAddChore}>Assegna</Button>
           </DialogFooter>
         </DialogContent>
