@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/auth-context'
 import { motion } from 'framer-motion'
 import {
   BellIcon,
@@ -70,6 +71,18 @@ const features = [
 ]
 
 export function LandingPage() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (user) return <Navigate to="/dashboard" replace />
+
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
       <BGPattern variant="grid" mask="fade-edges" fill="#0a4a5c" size={32} />
