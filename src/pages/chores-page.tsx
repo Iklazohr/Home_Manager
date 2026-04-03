@@ -27,7 +27,7 @@ import { CHORE_ICONS, getChoreIcon } from '@/lib/chore-icons'
 import { FREQUENCY_LABELS, FREQUENCY_DAYS, type ChoreFrequency } from '@/types'
 import { cn } from '@/lib/utils'
 
-type SortMode = 'scadenza' | 'nome' | 'frequenza'
+type SortMode = 'nome' | 'frequenza'
 
 const selectClasses =
   'flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground'
@@ -40,7 +40,7 @@ export function ChoresPage() {
 
   const [showTypeDialog, setShowTypeDialog] = useState(false)
   const [showAssignDialog, setShowAssignDialog] = useState(false)
-  const [sortMode, setSortMode] = useState<SortMode>('scadenza')
+  const [sortMode, setSortMode] = useState<SortMode>('nome')
 
   // New chore type form
   const [typeName, setTypeName] = useState('')
@@ -57,23 +57,19 @@ export function ChoresPage() {
   const getMemberName = (uid: string) =>
     uid === 'everyone' ? 'Tutti' : (members.find((m) => m.uid === uid)?.displayName ?? 'N/A')
 
-  // Ordinamento attivita
-  const sortedChores = useMemo(() => {
-    const sorted = [...chores]
+  // Ordinamento tipi di attivita
+  const sortedChoreTypes = useMemo(() => {
+    const sorted = [...choreTypes]
     switch (sortMode) {
       case 'nome':
-        sorted.sort((a, b) => a.choreTypeName.localeCompare(b.choreTypeName))
+        sorted.sort((a, b) => a.name.localeCompare(b.name))
         break
       case 'frequenza':
-        sorted.sort((a, b) => FREQUENCY_DAYS[a.frequency] - FREQUENCY_DAYS[b.frequency])
-        break
-      case 'scadenza':
-      default:
-        // gia ordinato per scadenza dal hook
+        sorted.sort((a, b) => FREQUENCY_DAYS[a.defaultFrequency] - FREQUENCY_DAYS[b.defaultFrequency])
         break
     }
     return sorted
-  }, [chores, sortMode])
+  }, [choreTypes, sortMode])
 
   function openAssignFromType(ct: { id: string; defaultFrequency: ChoreFrequency }) {
     setChoreTypeId(ct.id)
@@ -130,17 +126,32 @@ export function ChoresPage() {
 
       {/* Tipi di attivita — clicca per assegnare */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-2">
           <CardTitle>Tipi di Attivita</CardTitle>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setShowTypeDialog(true)}
-            title="Nuovo tipo"
-          >
-            <PlusIcon className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {choreTypes.length > 1 && (
+              <div className="flex items-center gap-1">
+                <ArrowUpDownIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                <select
+                  className="text-xs bg-transparent text-muted-foreground border-none outline-none cursor-pointer"
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as SortMode)}
+                >
+                  <option value="nome">Nome</option>
+                  <option value="frequenza">Frequenza</option>
+                </select>
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowTypeDialog(true)}
+              title="Nuovo tipo"
+            >
+              <PlusIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {choreTypes.length === 0 ? (
@@ -149,7 +160,7 @@ export function ChoresPage() {
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {choreTypes.map((ct) => {
+              {sortedChoreTypes.map((ct) => {
                 const Icon = getChoreIcon(ct.icon)
                 return (
                   <div
@@ -188,22 +199,8 @@ export function ChoresPage() {
 
       {/* Attivita programmate */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader>
           <CardTitle>Attivita Programmate</CardTitle>
-          {chores.length > 1 && (
-            <div className="flex items-center gap-1">
-              <ArrowUpDownIcon className="h-3.5 w-3.5 text-muted-foreground" />
-              <select
-                className="text-xs bg-transparent text-muted-foreground border-none outline-none cursor-pointer"
-                value={sortMode}
-                onChange={(e) => setSortMode(e.target.value as SortMode)}
-              >
-                <option value="scadenza">Scadenza</option>
-                <option value="nome">Nome</option>
-                <option value="frequenza">Frequenza</option>
-              </select>
-            </div>
-          )}
         </CardHeader>
         <CardContent>
           {chores.length === 0 ? (
@@ -212,7 +209,7 @@ export function ChoresPage() {
             </p>
           ) : (
             <div className="space-y-3">
-              {sortedChores.map((chore) => {
+              {chores.map((chore) => {
                 const Icon = getChoreIcon(chore.choreTypeIcon)
                 const due = (chore.nextDueDate as Timestamp).toDate()
                 return (
