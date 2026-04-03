@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   PlusIcon,
   Trash2Icon,
@@ -26,6 +27,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { CHORE_ICONS, getChoreIcon } from '@/lib/chore-icons'
 import { FREQUENCY_LABELS, FREQUENCY_DAYS, type ChoreFrequency } from '@/types'
 import { cn } from '@/lib/utils'
+import { staggerContainer, fadeInUp, listItem } from '@/lib/animations'
 
 type SortMode = 'nome' | 'frequenza'
 
@@ -121,10 +123,16 @@ export function ChoresPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-primary">Attivita</h1>
+    <motion.div
+      className="p-6 space-y-6 max-w-5xl mx-auto"
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.h1 variants={fadeInUp} className="text-2xl font-bold text-primary">Attivita</motion.h1>
 
       {/* Tipi di attivita — clicca per assegnare */}
+      <motion.div variants={fadeInUp}>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-2">
           <CardTitle>Tipi di Attivita</CardTitle>
@@ -159,13 +167,16 @@ export function ChoresPage() {
               Nessun tipo di attivita creato. Premi + per crearne uno!
             </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" variants={staggerContainer} initial="hidden" animate="show">
               {sortedChoreTypes.map((ct) => {
                 const Icon = getChoreIcon(ct.icon)
                 return (
-                  <div
+                  <motion.div
                     key={ct.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                    variants={listItem}
+                    whileHover={{ y: -2, borderColor: 'rgba(0, 200, 200, 0.4)' }}
+                    whileTap={{ scale: 0.97 }}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50 cursor-pointer transition-colors"
                     onClick={() => openAssignFromType(ct)}
                     title="Clicca per assegnare"
                   >
@@ -189,15 +200,17 @@ export function ChoresPage() {
                     >
                       <Trash2Icon className="h-3.5 w-3.5" />
                     </Button>
-                  </div>
+                  </motion.div>
                 )
               })}
-            </div>
+            </motion.div>
           )}
         </CardContent>
       </Card>
+      </motion.div>
 
       {/* Attivita programmate */}
+      <motion.div variants={fadeInUp}>
       <Card>
         <CardHeader>
           <CardTitle>Attivita Programmate</CardTitle>
@@ -208,13 +221,17 @@ export function ChoresPage() {
               Nessuna attivita programmata. Clicca su un tipo di attivita per assegnarla.
             </p>
           ) : (
-            <div className="space-y-3">
+            <AnimatePresence mode="popLayout">
+            <motion.div className="space-y-3" variants={staggerContainer} initial="hidden" animate="show">
               {chores.map((chore) => {
                 const Icon = getChoreIcon(chore.choreTypeIcon)
                 const due = (chore.nextDueDate as Timestamp).toDate()
                 return (
-                  <div
+                  <motion.div
                     key={chore.id}
+                    variants={listItem}
+                    layout
+                    exit={{ opacity: 0, x: 50, transition: { duration: 0.2 } }}
                     className={cn(
                       'flex items-center gap-3 sm:gap-4 p-3 rounded-lg border',
                       chore.status === 'in_ritardo'
@@ -240,6 +257,7 @@ export function ChoresPage() {
                       {chore.status === 'in_ritardo' ? 'In ritardo' : 'In attesa'}
                     </Badge>
                     <div className="flex gap-1 shrink-0">
+                      <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }}>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -249,6 +267,7 @@ export function ChoresPage() {
                       >
                         <CheckCircleIcon className="h-4 w-4 text-green-400" />
                       </Button>
+                      </motion.div>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -259,13 +278,15 @@ export function ChoresPage() {
                         <Trash2Icon className="h-3.5 w-3.5 text-muted-foreground" />
                       </Button>
                     </div>
-                  </div>
+                  </motion.div>
                 )
               })}
-            </div>
+            </motion.div>
+            </AnimatePresence>
           )}
         </CardContent>
       </Card>
+      </motion.div>
 
       {/* Dialog: Nuovo Tipo di Attivita */}
       <Dialog open={showTypeDialog} onOpenChange={setShowTypeDialog}>
@@ -397,6 +418,6 @@ export function ChoresPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   )
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { format, subDays } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { motion } from 'framer-motion'
 import type { Timestamp } from 'firebase/firestore'
 import {
   BarChart3Icon,
@@ -15,6 +16,7 @@ import { useCompletions, useChores } from '@/hooks/use-chores'
 import { useHousehold } from '@/contexts/household-context'
 import { useAuth } from '@/contexts/auth-context'
 import { cn } from '@/lib/utils'
+import { staggerContainer, fadeInUp, scaleIn, counterPop, listItem } from '@/lib/animations'
 
 type ViewMode = 'casa' | 'utente'
 
@@ -103,14 +105,17 @@ export function StatsPage() {
     : myStats ?? { total: 0, onTime: 0, late: 0, onTimeRate: 0, pending: 0, overdue: 0, last7Days: [], maxDayCount: 1 }
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <motion.div
+      className="p-6 space-y-6 max-w-5xl mx-auto"
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
           <BarChart3Icon className="h-6 w-6" />
           Statistiche
         </h1>
-
-        {/* Toggle casa / utente */}
         <div className="flex rounded-lg border border-border overflow-hidden">
           <button
             onClick={() => setView('casa')}
@@ -133,58 +138,47 @@ export function StatsPage() {
             Le Mie
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Overview cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <CheckCircle2Icon className="h-6 w-6 text-green-400 mx-auto mb-2" />
-            <p className="text-2xl font-bold">{current.total}</p>
-            <p className="text-xs text-muted-foreground">Completate</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <TrendingUpIcon className="h-6 w-6 text-primary mx-auto mb-2" />
-            <p className="text-2xl font-bold">
-              {view === 'casa' ? houseStats.onTimeRate : (myStats?.rate ?? 0)}%
-            </p>
-            <p className="text-xs text-muted-foreground">In tempo</p>
-          </CardContent>
-        </Card>
-        <Card className="col-span-2 sm:col-span-1">
-          <CardContent className="pt-6 text-center">
-            <AlertTriangleIcon className="h-6 w-6 text-destructive mx-auto mb-2" />
-            <p className="text-2xl font-bold">{current.overdue}</p>
-            <p className="text-xs text-muted-foreground">In ritardo</p>
-          </CardContent>
-        </Card>
-      </div>
+      <motion.div variants={fadeInUp} className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {[
+          { icon: CheckCircle2Icon, value: current.total, label: 'Completate', color: 'text-green-400' },
+          { icon: TrendingUpIcon, value: `${view === 'casa' ? houseStats.onTimeRate : (myStats?.rate ?? 0)}%`, label: 'In tempo', color: 'text-primary' },
+          { icon: AlertTriangleIcon, value: current.overdue, label: 'In ritardo', color: 'text-destructive', className: 'col-span-2 sm:col-span-1' },
+        ].map((s, i) => (
+          <motion.div key={i} variants={scaleIn} whileHover={{ y: -2 }} className={s.className}>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <s.icon className={cn('h-6 w-6 mx-auto mb-2', s.color)} />
+                <motion.p className="text-2xl font-bold" variants={counterPop}>{s.value}</motion.p>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </motion.div>
 
       {/* Dettagli extra */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-lg font-bold">{current.onTime}</p>
-            <p className="text-xs text-muted-foreground">Puntuali</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-lg font-bold">{current.late}</p>
-            <p className="text-xs text-muted-foreground">In ritardo</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-lg font-bold">{current.pending}</p>
-            <p className="text-xs text-muted-foreground">In attesa</p>
-          </CardContent>
-        </Card>
-      </div>
+      <motion.div variants={fadeInUp} className="grid grid-cols-3 gap-4">
+        {[
+          { value: current.onTime, label: 'Puntuali' },
+          { value: current.late, label: 'In ritardo' },
+          { value: current.pending, label: 'In attesa' },
+        ].map((s, i) => (
+          <motion.div key={i} variants={scaleIn}>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <p className="text-lg font-bold">{s.value}</p>
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </motion.div>
 
       {/* Grafico ultimi 7 giorni */}
+      <motion.div variants={fadeInUp}>
       <Card>
         <CardHeader>
           <CardTitle>Ultimi 7 Giorni</CardTitle>
@@ -194,31 +188,35 @@ export function StatsPage() {
             {current.last7Days.map((day, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
                 <span className="text-xs text-muted-foreground">{day.count}</span>
-                <div
+                <motion.div
                   className="w-full bg-primary/20 rounded-t-md relative overflow-hidden"
-                  style={{ height: `${(day.count / current.maxDayCount) * 100}%`, minHeight: '4px' }}
+                  initial={{ height: 0 }}
+                  animate={{ height: `${(day.count / current.maxDayCount) * 100}%`, minHeight: '4px' }}
+                  transition={{ duration: 0.5, delay: i * 0.05, ease: 'easeOut' }}
                 >
                   <div className="absolute inset-0 bg-primary rounded-t-md" />
-                </div>
+                </motion.div>
                 <span className="text-xs text-muted-foreground">{day.day}</span>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+      </motion.div>
 
       {/* Classifica membri — solo in vista casa */}
       {view === 'casa' && members.length > 1 && (
+        <motion.div variants={fadeInUp}>
         <Card>
           <CardHeader>
             <CardTitle>Classifica Membri</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <motion.div className="space-y-3" variants={staggerContainer} initial="hidden" animate="show">
               {[...memberStats]
                 .sort((a, b) => b.total - a.total)
                 .map((ms, idx) => (
-                  <div key={ms.uid} className="flex items-center gap-3 p-3 rounded-lg border border-border">
+                  <motion.div key={ms.uid} variants={listItem} className="flex items-center gap-3 p-3 rounded-lg border border-border">
                     <div className={cn(
                       'flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold',
                       idx === 0 ? 'bg-yellow-500/20 text-yellow-400' :
@@ -240,12 +238,13 @@ export function StatsPage() {
                         style={{ width: `${ms.rate}%` }}
                       />
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
-            </div>
+            </motion.div>
           </CardContent>
         </Card>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   )
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { doc, updateDoc } from 'firebase/firestore'
 import { updateProfile } from 'firebase/auth'
 import { UserIcon, SaveIcon, BellIcon, BellOffIcon, LogOutIcon, Loader2Icon } from 'lucide-react'
@@ -10,6 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/contexts/auth-context'
 import { useNotifications } from '@/hooks/use-notifications'
 import { db } from '@/lib/firebase'
+import { staggerContainer, fadeInUp } from '@/lib/animations'
 
 export function ProfilePage() {
   const { user, userProfile, logout, updateProfileData } = useAuth()
@@ -48,9 +50,15 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-primary">Profilo</h1>
+    <motion.div
+      className="p-6 space-y-6 max-w-2xl mx-auto"
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.h1 variants={fadeInUp} className="text-2xl font-bold text-primary">Profilo</motion.h1>
 
+      <motion.div variants={fadeInUp}>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -93,7 +101,9 @@ export function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+      </motion.div>
 
+      <motion.div variants={fadeInUp}>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -136,15 +146,20 @@ export function ProfilePage() {
           {notifError && <p className="text-sm text-destructive">{notifError}</p>}
         </CardContent>
       </Card>
+      </motion.div>
 
+      <motion.div variants={fadeInUp}>
       <Card>
         <CardContent className="pt-6">
+          <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
           <Button variant="destructive" className="w-full" onClick={logout}>
             <LogOutIcon className="h-4 w-4" />
             Esci dall'account
           </Button>
+          </motion.div>
         </CardContent>
       </Card>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

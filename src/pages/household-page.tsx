@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   HomeIcon,
   PlusCircleIcon,
@@ -14,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useHousehold } from '@/contexts/household-context'
+import { staggerContainer, fadeInUp } from '@/lib/animations'
 
 export function HouseholdPage() {
   const { households, currentHousehold, members, createHousehold, joinHousehold, selectHousehold } = useHousehold()
@@ -61,11 +63,16 @@ export function HouseholdPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-primary">La Tua Casa</h1>
+    <motion.div
+      className="p-6 space-y-6 max-w-3xl mx-auto"
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.h1 variants={fadeInUp} className="text-2xl font-bold text-primary">La Tua Casa</motion.h1>
 
       {!currentHousehold ? (
-        <div className="grid gap-6 md:grid-cols-2">
+        <motion.div variants={fadeInUp} className="grid gap-6 md:grid-cols-2">
           {/* Create */}
           <Card>
             <CardHeader>
@@ -116,7 +123,7 @@ export function HouseholdPage() {
           </Card>
 
           {error && <p className="text-sm text-destructive col-span-full">{error}</p>}
-        </div>
+        </motion.div>
       ) : (
         <>
           {/* Household switcher */}
@@ -225,6 +232,6 @@ export function HouseholdPage() {
           </Card>
         </>
       )}
-    </div>
+    </motion.div>
   )
 }
