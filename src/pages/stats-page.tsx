@@ -116,12 +116,14 @@ export function StatsPage() {
           <BarChart3Icon className="h-6 w-6" />
           Statistiche
         </h1>
-        <div className="flex rounded-lg border border-border overflow-hidden">
+        <div className="flex gap-2">
           <button
             onClick={() => setView('casa')}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors',
-              view === 'casa' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'
+              'flex items-center gap-1.5 px-4 py-1.5 text-sm rounded-lg border transition-colors',
+              view === 'casa'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-transparent text-muted-foreground border-border hover:text-foreground hover:border-foreground/30'
             )}
           >
             <HomeIcon className="h-3.5 w-3.5" />
@@ -130,8 +132,10 @@ export function StatsPage() {
           <button
             onClick={() => setView('utente')}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors',
-              view === 'utente' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'
+              'flex items-center gap-1.5 px-4 py-1.5 text-sm rounded-lg border transition-colors',
+              view === 'utente'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-transparent text-muted-foreground border-border hover:text-foreground hover:border-foreground/30'
             )}
           >
             <UserIcon className="h-3.5 w-3.5" />
