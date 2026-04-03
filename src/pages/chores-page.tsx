@@ -243,7 +243,7 @@ export function ChoresPage() {
             </div>
             <div className="space-y-2">
               <Label>Icona</Label>
-              <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto">
+              <div className="grid grid-cols-6 gap-2 max-h-52 overflow-y-auto">
                 {CHORE_ICONS.map((opt) => (
                   <button
                     key={opt.name}
@@ -265,7 +265,7 @@ export function ChoresPage() {
             <div className="space-y-2">
               <Label>Frequenza predefinita</Label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                className="flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground"
                 value={typeFreq}
                 onChange={(e) => setTypeFreq(e.target.value as ChoreFrequency)}
               >
@@ -292,7 +292,7 @@ export function ChoresPage() {
             <div className="space-y-2">
               <Label>Tipo di attivita</Label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                className="flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground"
                 value={choreTypeId}
                 onChange={(e) => {
                   setChoreTypeId(e.target.value)
@@ -309,7 +309,7 @@ export function ChoresPage() {
             <div className="space-y-2">
               <Label>Assegna a</Label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                className="flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground"
                 value={choreAssignedTo}
                 onChange={(e) => setChoreAssignedTo(e.target.value)}
               >
@@ -322,7 +322,7 @@ export function ChoresPage() {
             <div className="space-y-2">
               <Label>Frequenza</Label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                className="flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground"
                 value={choreFrequency}
                 onChange={(e) => setChoreFrequency(e.target.value as ChoreFrequency)}
               >
