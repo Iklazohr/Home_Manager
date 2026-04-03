@@ -3,9 +3,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Profilo utente: solo il proprietario puo leggere/scrivere
+    // Profilo utente: leggibile da utenti autenticati, scrivibile solo dal proprietario
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
     // Household: solo i membri possono leggere/scrivere

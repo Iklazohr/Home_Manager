@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import {
   collection,
   doc,
@@ -36,7 +36,23 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
 
-  async function fetchHouseholds() {
+  const fetchMembers = useCallback(async (household: Household) => {
+    try {
+      const memberProfiles: UserProfile[] = []
+      for (const uid of household.memberUids) {
+        const docSnap = await getDoc(doc(db, 'users', uid))
+        if (docSnap.exists()) {
+          memberProfiles.push({ uid: docSnap.id, ...docSnap.data() } as UserProfile)
+        }
+      }
+      setMembers(memberProfiles)
+    } catch (err) {
+      console.error('Errore nel caricamento membri:', err)
+      setMembers([])
+    }
+  }, [])
+
+  const fetchHouseholds = useCallback(async () => {
     if (!userProfile?.householdIds?.length) {
       setHouseholds([])
       setCurrentHousehold(null)
@@ -45,42 +61,39 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    const results: Household[] = []
-    for (const hId of userProfile.householdIds) {
-      const docSnap = await getDoc(doc(db, 'households', hId))
-      if (docSnap.exists()) {
-        results.push({ id: docSnap.id, ...docSnap.data() } as Household)
+    try {
+      const results: Household[] = []
+      for (const hId of userProfile.householdIds) {
+        const docSnap = await getDoc(doc(db, 'households', hId))
+        if (docSnap.exists()) {
+          results.push({ id: docSnap.id, ...docSnap.data() } as Household)
+        }
       }
-    }
 
-    setHouseholds(results)
+      setHouseholds(results)
 
-    if (results.length > 0 && !currentHousehold) {
-      setCurrentHousehold(results[0])
-      await fetchMembers(results[0])
-    }
-
-    setLoading(false)
-  }
-
-  async function fetchMembers(household: Household) {
-    const memberProfiles: UserProfile[] = []
-    for (const uid of household.memberUids) {
-      const docSnap = await getDoc(doc(db, 'users', uid))
-      if (docSnap.exists()) {
-        memberProfiles.push({ uid: docSnap.id, ...docSnap.data() } as UserProfile)
+      if (results.length > 0) {
+        const selected = results[0]
+        setCurrentHousehold(selected)
+        await fetchMembers(selected)
       }
+    } catch (err) {
+      console.error('Errore nel caricamento case:', err)
+    } finally {
+      setLoading(false)
     }
-    setMembers(memberProfiles)
-  }
+  }, [userProfile?.householdIds, fetchMembers])
 
   useEffect(() => {
     if (userProfile) {
       fetchHouseholds()
     } else {
+      setHouseholds([])
+      setCurrentHousehold(null)
+      setMembers([])
       setLoading(false)
     }
-  }, [userProfile])
+  }, [userProfile, fetchHouseholds])
 
   function selectHousehold(id: string) {
     const h = households.find((h) => h.id === id)
@@ -106,6 +119,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       householdIds: arrayUnion(docRef.id),
     })
 
+    // Aggiorna profilo e ricarica le case
     await refreshProfile()
     return docRef.id
   }
