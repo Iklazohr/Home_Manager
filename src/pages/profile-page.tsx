@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
 import { updateProfile } from 'firebase/auth'
-import { UserIcon, SaveIcon, BellIcon, BellOffIcon, LogOutIcon } from 'lucide-react'
+import { UserIcon, SaveIcon, BellIcon, BellOffIcon, LogOutIcon, Loader2Icon } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/contexts/auth-context'
+import { useNotifications } from '@/hooks/use-notifications'
 import { db } from '@/lib/firebase'
 
 export function ProfilePage() {
   const { user, userProfile, logout, updateProfileData } = useAuth()
+  const { isEnabled, loading: notifLoading, error: notifError, enableNotifications, disableNotifications } = useNotifications()
   const [displayName, setDisplayName] = useState(userProfile?.displayName ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -37,16 +39,11 @@ export function ProfilePage() {
     }
   }
 
-  async function toggleNotifications() {
-    if (!user || !userProfile) return
-    const newValue = !userProfile.notificationsEnabled
-    try {
-      await updateDoc(doc(db, 'users', user.uid), {
-        notificationsEnabled: newValue,
-      })
-      updateProfileData({ notificationsEnabled: newValue })
-    } catch (err) {
-      console.error('Errore aggiornamento notifiche:', err)
+  async function handleToggleNotifications() {
+    if (isEnabled) {
+      await disableNotifications()
+    } else {
+      await enableNotifications()
     }
   }
 
@@ -101,10 +98,10 @@ export function ProfilePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BellIcon className="h-5 w-5 text-primary" />
-            Notifiche
+            Notifiche Push
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Notifiche push</p>
@@ -114,10 +111,13 @@ export function ProfilePage() {
             </div>
             <Button
               variant="outline"
-              onClick={toggleNotifications}
-              className={userProfile?.notificationsEnabled ? 'text-primary' : 'text-muted-foreground'}
+              onClick={handleToggleNotifications}
+              disabled={notifLoading}
+              className={isEnabled ? 'text-primary' : 'text-muted-foreground'}
             >
-              {userProfile?.notificationsEnabled ? (
+              {notifLoading ? (
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+              ) : isEnabled ? (
                 <>
                   <BellIcon className="h-4 w-4" />
                   Attive
@@ -130,6 +130,7 @@ export function ProfilePage() {
               )}
             </Button>
           </div>
+          {notifError && <p className="text-sm text-destructive">{notifError}</p>}
         </CardContent>
       </Card>
 
