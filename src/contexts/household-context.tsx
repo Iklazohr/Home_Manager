@@ -30,7 +30,7 @@ interface HouseholdContextType {
 const HouseholdContext = createContext<HouseholdContextType | null>(null)
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
-  const { user, userProfile, refreshProfile } = useAuth()
+  const { user, userProfile, addHouseholdId } = useAuth()
   const [households, setHouseholds] = useState<Household[]>([])
   const [currentHousehold, setCurrentHousehold] = useState<Household | null>(null)
   const [members, setMembers] = useState<UserProfile[]>([])
@@ -135,8 +135,8 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         setMembers([userProfile])
       }
 
-      // Aggiorna profilo in background
-      refreshProfile().catch(() => {})
+      // Aggiorna profilo locale con il nuovo householdId
+      addHouseholdId(docRef.id)
 
       return docRef.id
     } catch (err) {
@@ -172,7 +172,8 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       setCurrentHousehold(joined)
       await fetchMembers(joined)
 
-      refreshProfile().catch(() => {})
+      // Aggiorna profilo locale con il nuovo householdId
+      addHouseholdId(householdDoc.id)
     } catch (err) {
       console.error('Errore join casa:', err)
       throw err

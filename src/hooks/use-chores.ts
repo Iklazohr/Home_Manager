@@ -69,23 +69,28 @@ export function useChores() {
       return
     }
 
-    const ref = collection(db, 'households', currentHousehold.id, 'chores')
-    const q = query(ref, orderBy('nextDueDate', 'asc'))
-    const snap = await getDocs(q)
-    const now = new Date()
+    try {
+      const ref = collection(db, 'households', currentHousehold.id, 'chores')
+      const q = query(ref, orderBy('nextDueDate', 'asc'))
+      const snap = await getDocs(q)
+      const now = new Date()
 
-    const result = snap.docs.map((d) => {
-      const data = d.data()
-      const nextDue = (data.nextDueDate as Timestamp).toDate()
-      let status = data.status as Chore['status']
-      if (status !== 'completato' && nextDue < now) {
-        status = 'in_ritardo'
-      }
-      return { id: d.id, ...data, status } as Chore
-    })
+      const result = snap.docs.map((d) => {
+        const data = d.data()
+        const nextDue = (data.nextDueDate as Timestamp).toDate()
+        let status = data.status as Chore['status']
+        if (status !== 'completato' && nextDue < now) {
+          status = 'in_ritardo'
+        }
+        return { id: d.id, ...data, status } as Chore
+      })
 
-    setChores(result)
-    setLoading(false)
+      setChores(result)
+    } catch (err) {
+      console.error('Errore nel caricamento attivita:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [currentHousehold])
 
   useEffect(() => {

@@ -19,6 +19,7 @@ interface AuthContextType {
   register: (email: string, password: string, displayName: string) => Promise<void>
   logout: () => Promise<void>
   refreshProfile: () => Promise<void>
+  addHouseholdId: (householdId: string) => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -98,8 +99,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function addHouseholdId(householdId: string) {
+    setUserProfile((prev) =>
+      prev ? { ...prev, householdIds: [...prev.householdIds, householdId] } : null
+    )
+  }
+
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, login, register, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, login, register, logout, refreshProfile, addHouseholdId }}>
       {children}
     </AuthContext.Provider>
   )
