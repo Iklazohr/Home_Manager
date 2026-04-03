@@ -29,22 +29,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   async function fetchProfile(uid: string) {
-    const docRef = doc(db, 'users', uid)
-    const docSnap = await getDoc(docRef)
-    if (docSnap.exists()) {
-      setUserProfile({ uid, ...docSnap.data() } as UserProfile)
+    try {
+      const docRef = doc(db, 'users', uid)
+      const docSnap = await getDoc(docRef)
+      if (docSnap.exists()) {
+        setUserProfile({ uid, ...docSnap.data() } as UserProfile)
+      } else {
+        console.warn('Profilo utente non trovato per uid:', uid)
+        setUserProfile(null)
+      }
+    } catch (err) {
+      console.error('Errore caricamento profilo:', err)
+      setUserProfile(null)
     }
   }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser)
-      if (firebaseUser) {
-        await fetchProfile(firebaseUser.uid)
-      } else {
+      try {
+        setUser(firebaseUser)
+        if (firebaseUser) {
+          await fetchProfile(firebaseUser.uid)
+        } else {
+          setUserProfile(null)
+        }
+      } catch (err) {
+        console.error('Errore auth state change:', err)
         setUserProfile(null)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
     return unsubscribe
   }, [])

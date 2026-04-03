@@ -4,6 +4,7 @@ import { HouseholdProvider } from '@/contexts/household-context'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { AppLayout } from '@/components/layout/app-layout'
 import { PWAUpdatePrompt } from '@/components/pwa-update-prompt'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { LandingPage } from '@/pages/landing-page'
 import { LoginPage } from '@/pages/login-page'
 import { RegisterPage } from '@/pages/register-page'
@@ -16,6 +17,7 @@ import { StatsPage } from '@/pages/stats-page'
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <AuthProvider>
         <HouseholdProvider>
@@ -45,5 +47,6 @@ export default function App() {
         </HouseholdProvider>
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   )
 }
