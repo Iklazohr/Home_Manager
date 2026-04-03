@@ -106,45 +106,77 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   async function createHousehold(name: string): Promise<string> {
     if (!user) throw new Error('Devi essere autenticato')
 
-    const inviteCode = generateInviteCode()
-    const docRef = await addDoc(collection(db, 'households'), {
-      name,
-      memberUids: [user.uid],
-      inviteCode,
-      createdBy: user.uid,
-      createdAt: serverTimestamp(),
-    })
+    try {
+      const inviteCode = generateInviteCode()
+      const householdData = {
+        name,
+        memberUids: [user.uid],
+        inviteCode,
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+      }
+      const docRef = await addDoc(collection(db, 'households'), householdData)
 
-    await updateDoc(doc(db, 'users', user.uid), {
-      householdIds: arrayUnion(docRef.id),
-    })
+      await updateDoc(doc(db, 'users', user.uid), {
+        householdIds: arrayUnion(docRef.id),
+      })
 
-    // Aggiorna profilo e ricarica le case
-    await refreshProfile()
-    return docRef.id
+      // Aggiorna stato locale direttamente senza aspettare useEffect
+      const newHousehold: Household = {
+        id: docRef.id,
+        ...householdData,
+        createdAt: householdData.createdAt as Household['createdAt'],
+      }
+      setHouseholds((prev) => [...prev, newHousehold])
+      setCurrentHousehold(newHousehold)
+
+      // Aggiorna membri con l'utente corrente
+      if (userProfile) {
+        setMembers([userProfile])
+      }
+
+      // Aggiorna profilo in background
+      refreshProfile().catch(() => {})
+
+      return docRef.id
+    } catch (err) {
+      console.error('Errore creazione casa:', err)
+      throw err
+    }
   }
 
   async function joinHousehold(inviteCode: string) {
     if (!user) throw new Error('Devi essere autenticato')
 
-    const q = query(collection(db, 'households'), where('inviteCode', '==', inviteCode.toUpperCase()))
-    const snap = await getDocs(q)
+    try {
+      const q = query(collection(db, 'households'), where('inviteCode', '==', inviteCode.toUpperCase()))
+      const snap = await getDocs(q)
 
-    if (snap.empty) {
-      throw new Error('Codice invito non valido')
+      if (snap.empty) {
+        throw new Error('Codice invito non valido')
+      }
+
+      const householdDoc = snap.docs[0]
+
+      await updateDoc(doc(db, 'households', householdDoc.id), {
+        memberUids: arrayUnion(user.uid),
+      })
+
+      await updateDoc(doc(db, 'users', user.uid), {
+        householdIds: arrayUnion(householdDoc.id),
+      })
+
+      // Aggiorna stato locale
+      const joined = { id: householdDoc.id, ...householdDoc.data() } as Household
+      setHouseholds((prev) => [...prev, joined])
+      setCurrentHousehold(joined)
+      await fetchMembers(joined)
+
+      refreshProfile().catch(() => {})
+    } catch (err) {
+      console.error('Errore join casa:', err)
+      throw err
     }
-
-    const householdDoc = snap.docs[0]
-
-    await updateDoc(doc(db, 'households', householdDoc.id), {
-      memberUids: arrayUnion(user.uid),
-    })
-
-    await updateDoc(doc(db, 'users', user.uid), {
-      householdIds: arrayUnion(householdDoc.id),
-    })
-
-    await refreshProfile()
   }
 
   async function refreshHouseholds() {

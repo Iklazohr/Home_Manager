@@ -32,8 +32,8 @@ export function HouseholdPage() {
     try {
       await createHousehold(newHouseName.trim())
       setNewHouseName('')
-    } catch {
-      setError('Errore nella creazione della casa')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Errore nella creazione della casa')
     } finally {
       setCreating(false)
     }
