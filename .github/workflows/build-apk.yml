@@ -8,6 +8,8 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE != '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +44,7 @@ jobs:
         run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
 
       - name: Decode keystore
-        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/release-keystore.jks
 
@@ -51,7 +53,7 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Build release APK
-        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         working-directory: android
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -72,7 +74,7 @@ jobs:
           retention-days: 30
 
       - name: Upload release APK
-        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: home-manager-release
