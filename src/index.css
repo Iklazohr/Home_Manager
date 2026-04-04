@@ -65,6 +65,14 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* Safe area per notch/display cutout su Android e iOS */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    background-color: oklch(0.145 0 0);
+  }
   body {
     @apply bg-background text-foreground;
     font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;

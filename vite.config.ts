@@ -21,8 +21,8 @@ export default defineConfig({
         name: 'Home Manager',
         short_name: 'HomeManager',
         description: 'Gestione delle faccende domestiche',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#1c1c1c',
+        background_color: '#1c1c1c',
         display: 'standalone',
         icons: [
           {
