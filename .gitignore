@@ -30,3 +30,7 @@ dist-ssr
 
 # Firebase
 .firebase/
+
+# Android/Capacitor (solo su branch Android)
+android/
+capacitor.config.ts
