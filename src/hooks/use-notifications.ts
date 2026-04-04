@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { isNativePlatform } from '@/lib/capacitor'
 import { useAuth } from '@/contexts/auth-context'
 import { useChores } from '@/hooks/use-chores'
 import type { Timestamp } from 'firebase/firestore'
@@ -16,7 +17,8 @@ export function useNotifications() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isEnabled = userProfile?.notificationsEnabled ?? false
-  const isSupported = typeof window !== 'undefined' && 'Notification' in window
+  // Su piattaforma nativa le notifiche sono gestite da use-push-notifications
+  const isSupported = typeof window !== 'undefined' && 'Notification' in window && !isNativePlatform
 
   // Controlla scadenze e mostra notifica locale
   const checkAndNotify = useCallback(() => {
