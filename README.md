@@ -32,3 +32,40 @@ Home Manager ti permette di organizzare la vita domestica della tua casa. Crea l
 ## Interfaccia
 
 L'app ha un tema scuro con accenti cyan, pensata per essere piacevole da usare in qualsiasi momento della giornata. Interamente in italiano.
+
+## Tech Stack
+
+- **Frontend**: React 19, TypeScript (strict mode), Vite
+- **Styling**: Tailwind CSS v4 + componenti UI custom (shadcn-style)
+- **Backend**: Firebase (Auth, Firestore, Hosting, Cloud Messaging)
+- **Animazioni**: Framer Motion
+- **Routing**: React Router v7
+- **PWA**: vite-plugin-pwa
+- **Android**: Capacitor + @capacitor/push-notifications
+
+## Struttura del progetto
+
+```
+src/
+  components/
+    ui/             Componenti riutilizzabili (Button, Card, Badge, Dialog, Input...)
+    auth/           Login, registrazione, protezione route
+    layout/         Navbar, layout principale
+    notifications/  Campanella notifiche
+  pages/            Una pagina per ogni sezione (Dashboard, Calendario, Attivita,
+                    Casa, Profilo, Statistiche)
+  hooks/            Logica riutilizzabile (auth, chores, notifiche push)
+  contexts/         Stato globale (AuthContext, HouseholdContext)
+  lib/              Firebase config, utility, icone attivita
+  types/            Interfacce e tipi TypeScript
+android/            Progetto Android nativo (solo branch Android)
+.github/workflows/  CI/CD: deploy web (main) e build APK (Android)
+```
+
+## Versioning
+
+La versione viene incrementata automaticamente ad ogni deploy:
+- **Web**: ogni push su `main` → deploy Firebase + bump patch version
+- **Android**: ogni push su `Android` → build APK + bump patch + versionCode incrementale
+
+La versione corrente e visibile nella pagina Profilo dell'app.
