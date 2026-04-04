@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { isNativePlatform } from '@/lib/capacitor'
 import { useAuth } from '@/contexts/auth-context'
 import { useChores } from '@/hooks/use-chores'
 import type { Timestamp } from 'firebase/firestore'
@@ -17,10 +16,9 @@ export function useNotifications() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isEnabled = userProfile?.notificationsEnabled ?? false
-  // Su piattaforma nativa le notifiche sono gestite da use-push-notifications
-  const isSupported = typeof window !== 'undefined' && 'Notification' in window && !isNativePlatform
+  const isSupported = typeof window !== 'undefined' && 'Notification' in window
 
-  // Controlla scadenze e mostra notifica locale (solo web)
+  // Controlla scadenze e mostra notifica locale
   const checkAndNotify = useCallback(() => {
     if (!isSupported || !isEnabled || Notification.permission !== 'granted') return
 
@@ -67,14 +65,12 @@ export function useNotifications() {
     localStorage.setItem(NOTIFICATION_KEY, now.getTime().toString())
   }, [chores, isEnabled, isSupported, user?.uid])
 
-  // Avvia/ferma il check periodico (solo web)
+  // Avvia/ferma il check periodico
   useEffect(() => {
     if (!isSupported) return
 
     if (isEnabled && Notification.permission === 'granted') {
-      // Check immediato
       checkAndNotify()
-      // Check periodico
       intervalRef.current = setInterval(checkAndNotify, CHECK_INTERVAL)
     }
 
@@ -84,27 +80,7 @@ export function useNotifications() {
   }, [isSupported, isEnabled, checkAndNotify])
 
   const enableNotifications = useCallback(async () => {
-    if (!user) return false
-
-    // Su nativo, abilita solo il flag Firestore (le push sono gestite da use-push-notifications)
-    if (isNativePlatform) {
-      setLoading(true)
-      try {
-        await updateDoc(doc(db, 'users', user.uid), {
-          notificationsEnabled: true,
-        })
-        updateProfileData({ notificationsEnabled: true })
-        return true
-      } catch (err) {
-        console.error('Errore abilitazione notifiche:', err)
-        setError('Errore nell\'attivazione delle notifiche.')
-        return false
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (!isSupported) {
+    if (!user || !isSupported) {
       setError('Il tuo browser non supporta le notifiche.')
       return false
     }
@@ -150,8 +126,7 @@ export function useNotifications() {
 
   return {
     isEnabled,
-    // Su nativo le notifiche sono sempre "supportate" (via FCM)
-    isSupported: isSupported || isNativePlatform,
+    isSupported,
     loading,
     error,
     enableNotifications,
