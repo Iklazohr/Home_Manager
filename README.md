@@ -1,73 +1,34 @@
-# React + TypeScript + Vite
+# Home Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Gestisci le faccende domestiche in modo semplice e organizzato, insieme a chi vive con te.
 
-Currently, two official plugins are available:
+## Cosa fa
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Home Manager ti permette di organizzare la vita domestica della tua casa. Crea la tua casa virtuale, invita i coinquilini o familiari, e gestite insieme le attivita da fare.
 
-## React Compiler
+### Funzionalita principali
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Crea la tua casa** e invita i membri con un codice di invito
+- **Definisci le attivita** ricorrenti (pulizie, spesa, bucato, ecc.) con icone e frequenze personalizzabili
+- **Assegna i compiti** ai membri della casa, con scadenze automatiche
+- **Calendario** per vedere cosa c'e da fare giorno per giorno
+- **Statistiche** per tenere traccia di chi fa cosa e quanto
+- **Notifiche** per non dimenticare le attivita in scadenza
+- **Dashboard** con panoramica immediata della situazione
 
-## Expanding the ESLint configuration
+### Disponibile su
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Web** — Accessibile da qualsiasi browser, funziona anche offline grazie alla modalita PWA
+- **Android** — App nativa installabile, con notifiche push vere
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Come si usa
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. Registrati con email e password
+2. Crea una nuova casa o unisciti a una esistente con il codice di invito
+3. Aggiungi le attivita ricorrenti della casa
+4. Assegna i compiti ai membri
+5. Segna le attivita come completate man mano che le fai
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Interfaccia
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+L'app ha un tema scuro con accenti cyan, pensata per essere piacevole da usare in qualsiasi momento della giornata. Interamente in italiano.

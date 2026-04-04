@@ -160,6 +160,10 @@ export function ProfilePage() {
         </CardContent>
       </Card>
       </motion.div>
+
+      <p className="text-center text-xs text-muted-foreground">
+        Home Manager v{__APP_VERSION__}
+      </p>
     </motion.div>
   )
 }
