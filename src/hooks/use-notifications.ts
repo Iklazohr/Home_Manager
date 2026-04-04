@@ -20,9 +20,9 @@ export function useNotifications() {
   // Su piattaforma nativa le notifiche sono gestite da use-push-notifications
   const isSupported = typeof window !== 'undefined' && 'Notification' in window && !isNativePlatform
 
-  // Controlla scadenze e mostra notifica locale
+  // Controlla scadenze e mostra notifica locale (solo web)
   const checkAndNotify = useCallback(() => {
-    if (!isEnabled || Notification.permission !== 'granted') return
+    if (!isSupported || !isEnabled || Notification.permission !== 'granted') return
 
     const now = new Date()
     const lastNotif = localStorage.getItem(NOTIFICATION_KEY)
@@ -65,10 +65,12 @@ export function useNotifications() {
     })
 
     localStorage.setItem(NOTIFICATION_KEY, now.getTime().toString())
-  }, [chores, isEnabled, user?.uid])
+  }, [chores, isEnabled, isSupported, user?.uid])
 
-  // Avvia/ferma il check periodico
+  // Avvia/ferma il check periodico (solo web)
   useEffect(() => {
+    if (!isSupported) return
+
     if (isEnabled && Notification.permission === 'granted') {
       // Check immediato
       checkAndNotify()
@@ -79,10 +81,30 @@ export function useNotifications() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [isEnabled, checkAndNotify])
+  }, [isSupported, isEnabled, checkAndNotify])
 
   const enableNotifications = useCallback(async () => {
-    if (!user || !isSupported) {
+    if (!user) return false
+
+    // Su nativo, abilita solo il flag Firestore (le push sono gestite da use-push-notifications)
+    if (isNativePlatform) {
+      setLoading(true)
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          notificationsEnabled: true,
+        })
+        updateProfileData({ notificationsEnabled: true })
+        return true
+      } catch (err) {
+        console.error('Errore abilitazione notifiche:', err)
+        setError('Errore nell\'attivazione delle notifiche.')
+        return false
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (!isSupported) {
       setError('Il tuo browser non supporta le notifiche.')
       return false
     }
@@ -128,7 +150,8 @@ export function useNotifications() {
 
   return {
     isEnabled,
-    isSupported,
+    // Su nativo le notifiche sono sempre "supportate" (via FCM)
+    isSupported: isSupported || isNativePlatform,
     loading,
     error,
     enableNotifications,
