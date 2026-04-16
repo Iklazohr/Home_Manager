@@ -86,10 +86,23 @@ export function useNotifications() {
   const enableNotifications = useCallback(async () => {
     if (!user) return false
 
-    // Su nativo, abilita solo il flag Firestore (le push sono gestite da use-push-notifications)
+    // Su nativo: richiedi il permesso Android POST_NOTIFICATIONS tramite
+    // LocalNotifications, poi salva il flag. Il plugin PushNotifications
+    // verra registrato separatamente da usePushNotifications.
     if (isNativePlatform) {
       setLoading(true)
+      setError('')
       try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications')
+        let perm = await LocalNotifications.checkPermissions()
+        if (perm.display !== 'granted') {
+          perm = await LocalNotifications.requestPermissions()
+        }
+        if (perm.display !== 'granted') {
+          setError('Permesso notifiche negato. Controlla le impostazioni dell\'app.')
+          return false
+        }
+
         await updateDoc(doc(db, 'users', user.uid), {
           notificationsEnabled: true,
         })

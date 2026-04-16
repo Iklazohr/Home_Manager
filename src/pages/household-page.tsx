@@ -48,8 +48,8 @@ export function HouseholdPage() {
     try {
       await joinHousehold(inviteCode.trim())
       setInviteCode('')
-    } catch {
-      setError('Codice invito non valido')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Codice invito non valido')
     } finally {
       setJoining(false)
     }

@@ -2,10 +2,12 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { NavBar } from '@/components/layout/nav-bar'
 import { usePushNotifications } from '@/hooks/use-push-notifications'
+import { useLocalNotifications } from '@/hooks/use-local-notifications'
 
 export function AppLayout() {
   const location = useLocation()
   usePushNotifications()
+  useLocalNotifications()
 
   return (
     <div className="min-h-screen bg-background">

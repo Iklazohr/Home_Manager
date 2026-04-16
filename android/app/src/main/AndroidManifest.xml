@@ -39,4 +39,20 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Notifiche (Android 13+ richiede permesso esplicito) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Schedulazione esatta delle notifiche locali -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <!-- Mantiene le notifiche schedulate dopo il reboot del dispositivo -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Wake lock per notifiche in modalita idle -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Vibrazione per le notifiche -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>
