@@ -8,6 +8,34 @@ import type { Timestamp } from 'firebase/firestore'
 const CHECK_INTERVAL = 60 * 60 * 1000 // Controlla ogni ora
 const NOTIFICATION_KEY = 'hm_last_notification'
 
+// Payload notifica condiviso con il layer nativo (branch Android)
+interface NotificationPayload {
+  title: string
+  body: string
+  tag?: string
+}
+
+// Bridge opzionale che il branch Android popola per delegare la consegna
+// delle notifiche al plugin nativo (@capacitor/local-notifications).
+// Su web questo resta undefined e si usa la Web Notifications API.
+type NativeBridge = {
+  isNative?: boolean
+  deliver?: (payload: NotificationPayload) => void | Promise<void>
+  requestPermission?: () => Promise<boolean>
+}
+
+function getNativeBridge(): NativeBridge | undefined {
+  if (typeof window === 'undefined') return undefined
+  const w = window as unknown as {
+    __hmNotifications?: NativeBridge
+    Capacitor?: { isNativePlatform?: () => boolean }
+  }
+  if (w.__hmNotifications) return w.__hmNotifications
+  // Fallback: rileva Capacitor senza importarlo
+  if (w.Capacitor?.isNativePlatform?.()) return { isNative: true }
+  return undefined
+}
+
 export function useNotifications() {
   const { user, userProfile, updateProfileData } = useAuth()
   const { chores } = useChores()
@@ -16,11 +44,37 @@ export function useNotifications() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isEnabled = userProfile?.notificationsEnabled ?? false
-  const isSupported = typeof window !== 'undefined' && 'Notification' in window
+  const native = getNativeBridge()
+  const isNative = !!native?.isNative
+  const hasWebNotifications = typeof window !== 'undefined' && 'Notification' in window
+  // Su nativo consideriamo comunque supportato: il branch Android fornisce il plugin
+  const isSupported = isNative || hasWebNotifications
+
+  // Consegna effettiva della notifica: delega al nativo se presente,
+  // altrimenti usa la Web Notifications API
+  const deliver = useCallback((payload: NotificationPayload) => {
+    if (native?.deliver) {
+      try {
+        void native.deliver(payload)
+      } catch (err) {
+        console.warn('Errore consegna notifica nativa:', err)
+      }
+      return
+    }
+    if (hasWebNotifications && Notification.permission === 'granted') {
+      new Notification(payload.title, {
+        body: payload.body,
+        icon: '/favicon.svg',
+        tag: payload.tag ?? 'chore-reminder',
+      })
+    }
+  }, [native, hasWebNotifications])
 
   // Controlla scadenze e mostra notifica locale
   const checkAndNotify = useCallback(() => {
-    if (!isSupported || !isEnabled || Notification.permission !== 'granted') return
+    if (!isEnabled) return
+    // Su web e necessario il permesso; su nativo lo gestisce il plugin
+    if (!isNative && (!hasWebNotifications || Notification.permission !== 'granted')) return
 
     const now = new Date()
     const lastNotif = localStorage.getItem(NOTIFICATION_KEY)
@@ -56,32 +110,29 @@ export function useNotifications() {
       .join(', ')
       + (dueChores.length > 3 ? ` e altre ${dueChores.length - 3}` : '')
 
-    new Notification(title, {
-      body,
-      icon: '/favicon.svg',
-      tag: 'chore-reminder',
-    })
+    deliver({ title, body, tag: 'chore-reminder' })
 
     localStorage.setItem(NOTIFICATION_KEY, now.getTime().toString())
-  }, [chores, isEnabled, isSupported, user?.uid])
+  }, [chores, isEnabled, isNative, hasWebNotifications, user?.uid, deliver])
 
   // Avvia/ferma il check periodico
   useEffect(() => {
-    if (!isSupported) return
+    if (!isSupported || !isEnabled) return
 
-    if (isEnabled && Notification.permission === 'granted') {
-      checkAndNotify()
-      intervalRef.current = setInterval(checkAndNotify, CHECK_INTERVAL)
-    }
+    const permissionOk = isNative || (hasWebNotifications && Notification.permission === 'granted')
+    if (!permissionOk) return
+
+    checkAndNotify()
+    intervalRef.current = setInterval(checkAndNotify, CHECK_INTERVAL)
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [isSupported, isEnabled, checkAndNotify])
+  }, [isSupported, isEnabled, isNative, hasWebNotifications, checkAndNotify])
 
   const enableNotifications = useCallback(async () => {
     if (!user || !isSupported) {
-      setError('Il tuo browser non supporta le notifiche.')
+      setError('Il tuo dispositivo non supporta le notifiche.')
       return false
     }
 
@@ -89,10 +140,23 @@ export function useNotifications() {
     setError('')
 
     try {
-      const permission = await Notification.requestPermission()
-      if (permission !== 'granted') {
-        setError('Permesso notifiche negato. Controlla le impostazioni del browser.')
-        return false
+      // Su nativo: delega la richiesta di permesso al plugin, se fornito
+      if (isNative) {
+        if (native?.requestPermission) {
+          const granted = await native.requestPermission()
+          if (!granted) {
+            setError('Permesso notifiche negato. Controlla le impostazioni dell\'app.')
+            return false
+          }
+        }
+        // Se il bridge nativo non espone requestPermission assumiamo ok:
+        // il plugin Android si occupera del permesso al primo invio.
+      } else {
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') {
+          setError('Permesso notifiche negato. Controlla le impostazioni del browser.')
+          return false
+        }
       }
 
       await updateDoc(doc(db, 'users', user.uid), {
@@ -107,7 +171,7 @@ export function useNotifications() {
     } finally {
       setLoading(false)
     }
-  }, [user, isSupported, updateProfileData])
+  }, [user, isSupported, isNative, native, updateProfileData])
 
   const disableNotifications = useCallback(async () => {
     if (!user) return

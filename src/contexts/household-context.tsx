@@ -148,35 +148,57 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   async function joinHousehold(inviteCode: string) {
     if (!user) throw new Error('Devi essere autenticato')
 
+    const normalizedCode = inviteCode.toUpperCase()
+    let snap
     try {
-      const q = query(collection(db, 'households'), where('inviteCode', '==', inviteCode.toUpperCase()))
-      const snap = await getDocs(q)
+      const q = query(collection(db, 'households'), where('inviteCode', '==', normalizedCode))
+      snap = await getDocs(q)
+    } catch (err) {
+      console.error('Errore ricerca casa:', err)
+      throw new Error('Impossibile verificare il codice. Riprova piu tardi.')
+    }
 
-      if (snap.empty) {
-        throw new Error('Codice invito non valido')
+    if (snap.empty) {
+      throw new Error('Codice invito non valido')
+    }
+
+    const householdDoc = snap.docs[0]
+    const householdData = householdDoc.data() as Omit<Household, 'id'>
+    const alreadyMember = householdData.memberUids.includes(user.uid)
+
+    try {
+      if (!alreadyMember) {
+        await updateDoc(doc(db, 'households', householdDoc.id), {
+          memberUids: arrayUnion(user.uid),
+        })
+
+        await updateDoc(doc(db, 'users', user.uid), {
+          householdIds: arrayUnion(householdDoc.id),
+        })
       }
 
-      const householdDoc = snap.docs[0]
-
-      await updateDoc(doc(db, 'households', householdDoc.id), {
-        memberUids: arrayUnion(user.uid),
-      })
-
-      await updateDoc(doc(db, 'users', user.uid), {
-        householdIds: arrayUnion(householdDoc.id),
-      })
-
       // Aggiorna stato locale
-      const joined = { id: householdDoc.id, ...householdDoc.data() } as Household
-      setHouseholds((prev) => [...prev, joined])
+      const joined: Household = {
+        id: householdDoc.id,
+        ...householdData,
+        memberUids: alreadyMember
+          ? householdData.memberUids
+          : [...householdData.memberUids, user.uid],
+      }
+      setHouseholds((prev) => {
+        if (prev.some((h) => h.id === joined.id)) return prev
+        return [...prev, joined]
+      })
       setCurrentHousehold(joined)
       await fetchMembers(joined)
 
       // Aggiorna profilo locale con il nuovo householdId
-      addHouseholdId(householdDoc.id)
+      if (!alreadyMember) {
+        addHouseholdId(householdDoc.id)
+      }
     } catch (err) {
       console.error('Errore join casa:', err)
-      throw err
+      throw new Error('Impossibile entrare nella casa. Riprova piu tardi.')
     }
   }
 

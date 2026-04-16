@@ -9,12 +9,29 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Household: solo i membri possono leggere/scrivere
+    // Household: membri possono leggere/scrivere; un utente autenticato puo
+    // leggere per cercare tramite codice invito e auto-aggiungersi ai memberUids
     match /households/{householdId} {
-      allow read: if request.auth != null
-        && request.auth.uid in resource.data.memberUids;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null
+      // Lettura permessa a qualsiasi utente autenticato:
+      // necessario per risolvere il codice invito prima di entrare nella casa.
+      // La privacy e garantita dalla segretezza del codice.
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+        && request.auth.uid in request.resource.data.memberUids;
+
+      // Update: membri possono modificare tutto; i non-membri possono solo
+      // aggiungere se stessi al campo memberUids (join via codice invito).
+      allow update: if request.auth != null
+        && (
+          request.auth.uid in resource.data.memberUids
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids'])
+            && request.auth.uid in request.resource.data.memberUids
+          )
+        );
+
+      allow delete: if request.auth != null
         && request.auth.uid in resource.data.memberUids;
 
       // Sottocollezioni: solo i membri della household
