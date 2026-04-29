@@ -7,6 +7,9 @@ import {
   Trash2Icon,
   CheckCircleIcon,
   ArrowUpDownIcon,
+  UndoIcon,
+  CircleDotIcon,
+  FilterIcon,
 } from 'lucide-react'
 import type { Timestamp } from 'firebase/firestore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,11 +28,19 @@ import { useChoreTypes, useChores } from '@/hooks/use-chores'
 import { useHousehold } from '@/contexts/household-context'
 import { useAuth } from '@/contexts/auth-context'
 import { CHORE_ICONS, getChoreIcon } from '@/lib/chore-icons'
-import { FREQUENCY_LABELS, FREQUENCY_DAYS, type ChoreFrequency } from '@/types'
+import {
+  FREQUENCY_LABELS,
+  FREQUENCY_DAYS,
+  CHORE_CATEGORY_LABELS,
+  SCHEDULE_MODE_LABELS,
+  type ChoreFrequency,
+  type ChoreCategory,
+  type ScheduleMode,
+} from '@/types'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeInUp, listItem } from '@/lib/animations'
 
-type SortMode = 'nome' | 'frequenza'
+type SortMode = 'nome' | 'frequenza' | 'categoria'
 
 const selectClasses =
   'flex h-9 w-full rounded-md border border-input bg-card text-foreground px-3 py-1 text-sm [&>option]:bg-card [&>option]:text-foreground'
@@ -38,44 +49,53 @@ export function ChoresPage() {
   const { user } = useAuth()
   const { currentHousehold, members } = useHousehold()
   const { choreTypes, addChoreType, deleteChoreType } = useChoreTypes()
-  const { chores, addChore, completeChore, deleteChore } = useChores()
+  const { chores, addChore, completeChore, uncompleteChore, deleteChore } = useChores()
 
   const [showTypeDialog, setShowTypeDialog] = useState(false)
   const [showAssignDialog, setShowAssignDialog] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('nome')
+  const [filterCategory, setFilterCategory] = useState<ChoreCategory | ''>('')
 
   // New chore type form
   const [typeName, setTypeName] = useState('')
   const [typeIcon, setTypeIcon] = useState('sparkles')
   const [typeDesc, setTypeDesc] = useState('')
   const [typeFreq, setTypeFreq] = useState<ChoreFrequency>('settimanale')
+  const [typeCategory, setTypeCategory] = useState<ChoreCategory>('altro')
 
-  // Assign chore form — precompilato quando si clicca su un tipo
+  // Assign chore form
   const [choreTypeId, setChoreTypeId] = useState('')
   const [choreAssignedTo, setChoreAssignedTo] = useState('')
   const [choreFrequency, setChoreFrequency] = useState<ChoreFrequency>('settimanale')
+  const [choreScheduleMode, setChoreScheduleMode] = useState<ScheduleMode>('esatto')
   const [choreDueDate, setChoreDueDate] = useState('')
 
   const getMemberName = (uid: string) =>
     uid === 'everyone' ? 'Tutti' : (members.find((m) => m.uid === uid)?.displayName ?? 'N/A')
 
-  // Ordinamento tipi di attivita
   const sortedChoreTypes = useMemo(() => {
-    const sorted = [...choreTypes]
+    let filtered = [...choreTypes]
+    if (filterCategory) {
+      filtered = filtered.filter((ct) => (ct.category ?? 'altro') === filterCategory)
+    }
     switch (sortMode) {
       case 'nome':
-        sorted.sort((a, b) => a.name.localeCompare(b.name))
+        filtered.sort((a, b) => a.name.localeCompare(b.name))
         break
       case 'frequenza':
-        sorted.sort((a, b) => FREQUENCY_DAYS[a.defaultFrequency] - FREQUENCY_DAYS[b.defaultFrequency])
+        filtered.sort((a, b) => FREQUENCY_DAYS[a.defaultFrequency] - FREQUENCY_DAYS[b.defaultFrequency])
+        break
+      case 'categoria':
+        filtered.sort((a, b) => (a.category ?? 'altro').localeCompare(b.category ?? 'altro'))
         break
     }
-    return sorted
-  }, [choreTypes, sortMode])
+    return filtered
+  }, [choreTypes, sortMode, filterCategory])
 
   function openAssignFromType(ct: { id: string; defaultFrequency: ChoreFrequency }) {
     setChoreTypeId(ct.id)
     setChoreFrequency(ct.defaultFrequency)
+    setChoreScheduleMode('esatto')
     setChoreAssignedTo('')
     setChoreDueDate('')
     setShowAssignDialog(true)
@@ -88,11 +108,13 @@ export function ChoresPage() {
       icon: typeIcon,
       description: typeDesc,
       defaultFrequency: typeFreq,
+      category: typeCategory,
       createdBy: user.uid,
     })
     setTypeName('')
     setTypeDesc('')
     setTypeIcon('sparkles')
+    setTypeCategory('altro')
     setShowTypeDialog(false)
   }
 
@@ -106,12 +128,25 @@ export function ChoresPage() {
       choreTypeIcon: ct.icon,
       assignedTo: choreAssignedTo,
       frequency: choreFrequency,
+      scheduleMode: choreScheduleMode,
       nextDueDate: new Date(choreDueDate),
     })
     setChoreTypeId('')
     setChoreAssignedTo('')
     setChoreDueDate('')
+    setChoreScheduleMode('esatto')
     setShowAssignDialog(false)
+  }
+
+  function getStatusBadge(status: string) {
+    switch (status) {
+      case 'in_ritardo':
+        return <Badge variant="destructive">In ritardo</Badge>
+      case 'parziale':
+        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Parziale</Badge>
+      default:
+        return <Badge variant="secondary">In attesa</Badge>
+    }
   }
 
   if (!currentHousehold) {
@@ -131,12 +166,26 @@ export function ChoresPage() {
     >
       <motion.h1 variants={fadeInUp} className="text-2xl font-bold text-primary">Attivita</motion.h1>
 
-      {/* Tipi di attivita — clicca per assegnare */}
+      {/* Tipi di attivita */}
       <motion.div variants={fadeInUp}>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-2">
           <CardTitle>Tipi di Attivita</CardTitle>
           <div className="flex items-center gap-2">
+            {/* Filtro categoria */}
+            <div className="flex items-center gap-1">
+              <FilterIcon className="h-3.5 w-3.5 text-muted-foreground" />
+              <select
+                className="text-xs bg-transparent text-muted-foreground border-none outline-none cursor-pointer"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value as ChoreCategory | '')}
+              >
+                <option value="">Tutte</option>
+                {Object.entries(CHORE_CATEGORY_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
             {choreTypes.length > 1 && (
               <div className="flex items-center gap-1">
                 <ArrowUpDownIcon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -147,6 +196,7 @@ export function ChoresPage() {
                 >
                   <option value="nome">Nome</option>
                   <option value="frequenza">Frequenza</option>
+                  <option value="categoria">Categoria</option>
                 </select>
               </div>
             )}
@@ -162,9 +212,11 @@ export function ChoresPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {choreTypes.length === 0 ? (
+          {sortedChoreTypes.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Nessun tipo di attivita creato. Premi + per crearne uno!
+              {filterCategory
+                ? 'Nessun tipo in questa categoria.'
+                : 'Nessun tipo di attivita creato. Premi + per crearne uno!'}
             </p>
           ) : (
             <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" variants={staggerContainer} initial="hidden" animate="show">
@@ -187,6 +239,9 @@ export function ChoresPage() {
                       <p className="text-sm font-medium truncate">{ct.name}</p>
                       <p className="text-xs text-muted-foreground">
                         {FREQUENCY_LABELS[ct.defaultFrequency]}
+                        {ct.category && ct.category !== 'altro' && (
+                          <> &middot; {CHORE_CATEGORY_LABELS[ct.category]}</>
+                        )}
                       </p>
                     </div>
                     <Button
@@ -226,6 +281,7 @@ export function ChoresPage() {
               {chores.map((chore) => {
                 const Icon = getChoreIcon(chore.choreTypeIcon)
                 const due = (chore.nextDueDate as Timestamp).toDate()
+                const showUndo = chore.status === 'parziale' || chore.lastCompletedDate != null
                 return (
                   <motion.div
                     key={chore.id}
@@ -236,6 +292,8 @@ export function ChoresPage() {
                       'flex items-center gap-3 sm:gap-4 p-3 rounded-lg border',
                       chore.status === 'in_ritardo'
                         ? 'border-destructive/30 bg-destructive/5'
+                        : chore.status === 'parziale'
+                        ? 'border-yellow-500/30 bg-yellow-500/5'
                         : 'border-border bg-card/50'
                     )}
                   >
@@ -248,26 +306,55 @@ export function ChoresPage() {
                         {getMemberName(chore.assignedTo)} &middot;{' '}
                         {FREQUENCY_LABELS[chore.frequency]} &middot;{' '}
                         {format(due, 'd MMM', { locale: it })}
+                        {chore.scheduleMode && chore.scheduleMode !== 'esatto' && (
+                          <> &middot; {SCHEDULE_MODE_LABELS[chore.scheduleMode]}</>
+                        )}
                       </p>
                     </div>
-                    <Badge
-                      variant={chore.status === 'in_ritardo' ? 'destructive' : 'secondary'}
-                      className="hidden sm:inline-flex"
-                    >
-                      {chore.status === 'in_ritardo' ? 'In ritardo' : 'In attesa'}
-                    </Badge>
+                    <div className="hidden sm:block">
+                      {getStatusBadge(chore.status)}
+                    </div>
                     <div className="flex gap-1 shrink-0">
+                      {/* Completamento parziale */}
+                      {chore.status !== 'parziale' && (
+                        <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => completeChore(chore.id, true)}
+                            title="Completamento parziale"
+                          >
+                            <CircleDotIcon className="h-4 w-4 text-yellow-400" />
+                          </Button>
+                        </motion.div>
+                      )}
+                      {/* Completamento totale */}
                       <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => completeChore(chore.id)}
-                        title="Completa"
-                      >
-                        <CheckCircleIcon className="h-4 w-4 text-green-400" />
-                      </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => completeChore(chore.id)}
+                          title="Completa"
+                        >
+                          <CheckCircleIcon className="h-4 w-4 text-green-400" />
+                        </Button>
                       </motion.div>
+                      {/* Undo */}
+                      {showUndo && (
+                        <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => uncompleteChore(chore.id)}
+                            title="Segna come non completata"
+                          >
+                            <UndoIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                        </motion.div>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -310,6 +397,18 @@ export function ChoresPage() {
                 value={typeDesc}
                 onChange={(e) => setTypeDesc(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <select
+                className={selectClasses}
+                value={typeCategory}
+                onChange={(e) => setTypeCategory(e.target.value as ChoreCategory)}
+              >
+                {Object.entries(CHORE_CATEGORY_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <Label>Icona</Label>
@@ -398,6 +497,18 @@ export function ChoresPage() {
                 onChange={(e) => setChoreFrequency(e.target.value as ChoreFrequency)}
               >
                 {Object.entries(FREQUENCY_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Modalita scadenza</Label>
+              <select
+                className={selectClasses}
+                value={choreScheduleMode}
+                onChange={(e) => setChoreScheduleMode(e.target.value as ScheduleMode)}
+              >
+                {Object.entries(SCHEDULE_MODE_LABELS).map(([key, label]) => (
                   <option key={key} value={key}>{label}</option>
                 ))}
               </select>

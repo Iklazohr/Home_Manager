@@ -76,6 +76,8 @@ export function CalendarPage() {
         return 'bg-green-500/20 border-green-500/40 text-green-400'
       case 'in_ritardo':
         return 'bg-red-500/20 border-red-500/40 text-red-400'
+      case 'parziale':
+        return 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400'
       default:
         return 'bg-primary/20 border-primary/40 text-primary'
     }

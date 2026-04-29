@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useChores } from '@/hooks/use-chores'
 import type { Timestamp } from 'firebase/firestore'
 
-const CHECK_INTERVAL = 60 * 60 * 1000 // Controlla ogni ora
+const CHECK_INTERVAL = 60 * 60 * 1000
 const NOTIFICATION_KEY = 'hm_last_notification'
 
 export function useNotifications() {
@@ -17,28 +17,26 @@ export function useNotifications() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isEnabled = userProfile?.notificationsEnabled ?? false
-  // Su piattaforma nativa le notifiche sono gestite da use-push-notifications
-  const isSupported = typeof window !== 'undefined' && 'Notification' in window && !isNativePlatform
+  const hasWebNotifications = typeof window !== 'undefined' && 'Notification' in window && !isNativePlatform
+  // Su nativo le notifiche sono gestite da use-local-notifications e use-push-notifications
+  const isSupported = isNativePlatform || hasWebNotifications
 
-  // Controlla scadenze e mostra notifica locale (solo web)
+  // Controlla scadenze e mostra notifica locale (solo web — su nativo usa use-local-notifications)
   const checkAndNotify = useCallback(() => {
-    if (!isSupported || !isEnabled || Notification.permission !== 'granted') return
+    if (!hasWebNotifications || !isEnabled || Notification.permission !== 'granted') return
 
     const now = new Date()
     const lastNotif = localStorage.getItem(NOTIFICATION_KEY)
     const lastNotifTime = lastNotif ? parseInt(lastNotif, 10) : 0
 
-    // Non notificare piu di una volta ogni 4 ore
     if (now.getTime() - lastNotifTime < 4 * 60 * 60 * 1000) return
 
     const dueChores = chores.filter((c) => {
       if (c.status === 'completato') return false
       const due = (c.nextDueDate as Timestamp).toDate()
-      // In scadenza entro 24h o gia in ritardo
       const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
       return due <= in24h
     }).filter((c) => {
-      // Solo attivita assegnate a me o a tutti
       return c.assignedTo === user?.uid || c.assignedTo === 'everyone'
     })
 
@@ -58,37 +56,27 @@ export function useNotifications() {
       .join(', ')
       + (dueChores.length > 3 ? ` e altre ${dueChores.length - 3}` : '')
 
-    new Notification(title, {
-      body,
-      icon: '/favicon.svg',
-      tag: 'chore-reminder',
-    })
+    new Notification(title, { body, icon: '/favicon.svg', tag: 'chore-reminder' })
 
     localStorage.setItem(NOTIFICATION_KEY, now.getTime().toString())
-  }, [chores, isEnabled, isSupported, user?.uid])
+  }, [chores, isEnabled, hasWebNotifications, user?.uid])
 
-  // Avvia/ferma il check periodico (solo web)
   useEffect(() => {
-    if (!isSupported) return
+    if (!hasWebNotifications || !isEnabled) return
+    if (Notification.permission !== 'granted') return
 
-    if (isEnabled && Notification.permission === 'granted') {
-      // Check immediato
-      checkAndNotify()
-      // Check periodico
-      intervalRef.current = setInterval(checkAndNotify, CHECK_INTERVAL)
-    }
+    checkAndNotify()
+    intervalRef.current = setInterval(checkAndNotify, CHECK_INTERVAL)
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [isSupported, isEnabled, checkAndNotify])
+  }, [hasWebNotifications, isEnabled, checkAndNotify])
 
   const enableNotifications = useCallback(async () => {
     if (!user) return false
 
-    // Su nativo: richiedi il permesso Android POST_NOTIFICATIONS tramite
-    // LocalNotifications, poi salva il flag. Il plugin PushNotifications
-    // verra registrato separatamente da usePushNotifications.
+    // Su nativo: richiedi il permesso Android POST_NOTIFICATIONS
     if (isNativePlatform) {
       setLoading(true)
       setError('')
@@ -117,7 +105,7 @@ export function useNotifications() {
       }
     }
 
-    if (!isSupported) {
+    if (!hasWebNotifications) {
       setError('Il tuo browser non supporta le notifiche.')
       return false
     }
@@ -144,7 +132,7 @@ export function useNotifications() {
     } finally {
       setLoading(false)
     }
-  }, [user, isSupported, updateProfileData])
+  }, [user, hasWebNotifications, updateProfileData])
 
   const disableNotifications = useCallback(async () => {
     if (!user) return
@@ -163,8 +151,7 @@ export function useNotifications() {
 
   return {
     isEnabled,
-    // Su nativo le notifiche sono sempre "supportate" (via FCM)
-    isSupported: isSupported || isNativePlatform,
+    isSupported,
     loading,
     error,
     enableNotifications,

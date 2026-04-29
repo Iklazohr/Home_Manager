@@ -14,7 +14,7 @@ export function NotificationBell() {
   const notifications = useMemo(() => {
     const now = new Date()
     return chores
-      .filter((c) => c.status === 'in_ritardo' || c.status === 'in_attesa')
+      .filter((c) => c.status === 'in_ritardo' || c.status === 'in_attesa' || c.status === 'parziale')
       .map((c) => {
         const due = (c.nextDueDate as Timestamp).toDate()
         const isOverdue = due < now
