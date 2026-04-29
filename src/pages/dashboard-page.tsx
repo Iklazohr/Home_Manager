@@ -166,8 +166,11 @@ export function DashboardPage() {
                           Assegnato a: {getMemberName(chore.assignedTo)}
                         </p>
                       </div>
-                      <Badge variant={chore.status === 'in_ritardo' ? 'destructive' : 'secondary'}>
-                        {chore.status === 'in_ritardo' ? 'In ritardo' : 'In attesa'}
+                      <Badge
+                        variant={chore.status === 'in_ritardo' ? 'destructive' : 'secondary'}
+                        className={chore.status === 'parziale' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : undefined}
+                      >
+                        {chore.status === 'in_ritardo' ? 'In ritardo' : chore.status === 'parziale' ? 'Parziale' : 'In attesa'}
                       </Badge>
                     </motion.div>
                   )

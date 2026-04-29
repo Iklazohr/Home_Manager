@@ -62,6 +62,7 @@ import {
   Pipette,
   HandPlatter,
   Brush,
+  UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -105,6 +106,7 @@ export const CHORE_ICONS: ChoreIconOption[] = [
   { name: 'utensils', label: 'Piatti', icon: Utensils },
   { name: 'refrigerator', label: 'Frigorifero', icon: Refrigerator },
   { name: 'microwave', label: 'Microonde/Forno', icon: Microwave },
+  { name: 'utensils-crossed', label: 'Lavastoviglie', icon: UtensilsCrossed },
 
   // Spesa
   { name: 'shopping-cart', label: 'Spesa', icon: ShoppingCart },

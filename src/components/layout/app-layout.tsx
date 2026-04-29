@@ -1,9 +1,11 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { NavBar } from '@/components/layout/nav-bar'
+import { useEventNotifications } from '@/hooks/use-event-notifications'
 
 export function AppLayout() {
   const location = useLocation()
+  useEventNotifications()
 
   return (
     <div className="min-h-screen bg-background">

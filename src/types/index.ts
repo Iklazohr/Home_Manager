@@ -20,12 +20,34 @@ export interface Household {
   createdAt: Timestamp
 }
 
+export type ChoreCategory =
+  | 'cucina'
+  | 'bagno'
+  | 'camera'
+  | 'soggiorno'
+  | 'bucato'
+  | 'esterno'
+  | 'manutenzione'
+  | 'altro'
+
+export const CHORE_CATEGORY_LABELS: Record<ChoreCategory, string> = {
+  cucina: 'Cucina',
+  bagno: 'Bagno',
+  camera: 'Camera',
+  soggiorno: 'Soggiorno',
+  bucato: 'Bucato',
+  esterno: 'Esterno/Giardino',
+  manutenzione: 'Manutenzione',
+  altro: 'Altro',
+}
+
 export interface ChoreType {
   id: string
   name: string
   icon: string
   description: string
   defaultFrequency: ChoreFrequency
+  category: ChoreCategory
   createdBy: string
 }
 
@@ -37,6 +59,18 @@ export type ChoreFrequency =
   | 'semestrale'
   | 'annuale'
 
+export type ScheduleMode = 'esatto' | 'weekend' | 'lunedi' | 'martedi' | 'mercoledi' | 'giovedi' | 'venerdi'
+
+export const SCHEDULE_MODE_LABELS: Record<ScheduleMode, string> = {
+  esatto: 'Giorno esatto',
+  weekend: 'Weekend piu vicino',
+  lunedi: 'Lunedi piu vicino',
+  martedi: 'Martedi piu vicino',
+  mercoledi: 'Mercoledi piu vicino',
+  giovedi: 'Giovedi piu vicino',
+  venerdi: 'Venerdi piu vicino',
+}
+
 export interface Chore {
   id: string
   choreTypeId: string
@@ -44,9 +78,10 @@ export interface Chore {
   choreTypeIcon: string
   assignedTo: string
   frequency: ChoreFrequency
+  scheduleMode: ScheduleMode
   nextDueDate: Timestamp
   lastCompletedDate: Timestamp | null
-  status: 'in_attesa' | 'completato' | 'in_ritardo'
+  status: 'in_attesa' | 'completato' | 'in_ritardo' | 'parziale'
   createdAt: Timestamp
 }
 
@@ -58,6 +93,7 @@ export interface ChoreCompletion {
   completedBy: string
   completedAt: Timestamp
   wasOnTime: boolean
+  isPartial: boolean
   dueDate: Timestamp
 }
 
