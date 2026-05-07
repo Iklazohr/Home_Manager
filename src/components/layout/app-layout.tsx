@@ -12,7 +12,7 @@ export function AppLayout() {
   useEventNotifications()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <NavBar />
       <main className="lg:ml-64 pb-20 lg:pb-0">
         <AnimatePresence mode="wait">
