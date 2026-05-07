@@ -164,7 +164,7 @@ export function StatsPage() {
       </motion.div>
 
       {/* Dettagli extra */}
-      <motion.div variants={fadeInUp} className="grid grid-cols-3 gap-4">
+      <motion.div variants={fadeInUp} className="grid grid-cols-3 gap-2 sm:gap-4">
         {[
           { value: current.onTime, label: 'Puntuali' },
           { value: current.late, label: 'In ritardo' },

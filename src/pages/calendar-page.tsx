@@ -137,7 +137,8 @@ export function CalendarPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         {/* Calendar grid */}
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto">
+            <div className="min-w-[280px]">
             <div className="grid grid-cols-7 text-center text-xs font-semibold border-b border-border">
               {dayNames.map((day) => (
                 <div key={day} className="py-2.5 text-muted-foreground">{day}</div>
@@ -184,6 +185,7 @@ export function CalendarPage() {
                   </button>
                 )
               })}
+            </div>
             </div>
           </CardContent>
         </Card>

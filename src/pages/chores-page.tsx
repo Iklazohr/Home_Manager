@@ -169,9 +169,9 @@ export function ChoresPage() {
       {/* Tipi di attivita */}
       <motion.div variants={fadeInUp}>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-2">
+        <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between space-y-0">
           <CardTitle>Tipi di Attivita</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Filtro categoria */}
             <div className="flex items-center gap-1">
               <FilterIcon className="h-3.5 w-3.5 text-muted-foreground" />
