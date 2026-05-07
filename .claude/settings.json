@@ -1,0 +1,7 @@
+{
+  "env": {
+    "ANTHROPIC_MODEL": "opus",
+    "CLAUDE_CODE_EFFORT_LEVEL": "high",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
+  }
+}
